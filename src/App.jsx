@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { LogOut, Lock } from "lucide-react";
-import { loadJSON, saveJSON } from "./storage";
+import { loadSession, saveSession, fetchData, persistData, loginRequest } from "./storage";
 import { COLORS, ROLES, hashColor, initials } from "./theme";
 import { GENERIC_MODULES, GENERIC_MODULE_ORDER } from "./modules";
 import Sidebar from "./components/Sidebar";
@@ -16,35 +16,42 @@ import { BrandBadges } from "./components/BrandLogos";
 
 const USERS_KEY = "duanfedex-users";
 const TASKS_KEY = "duanfedex-tasks";
-const SESSION_KEY = "duanfedex-session";
 const moduleKey = (key) => `duanfedex-module-${key}`;
 
-const SEED_USERS = [
-  { id: "u1", name: "Quản trị viên", email: "admin@duanfedex.vn", phone: "", position: "Quản trị hệ thống", role: "admin", password: "admin123" },
-];
-
-function emptyModuleRecords() {
-  const records = {};
-  GENERIC_MODULE_ORDER.forEach((key) => { records[key] = loadJSON(moduleKey(key), []); });
-  return records;
-}
-
-// Nếu dữ liệu đã lưu trong trình duyệt (từ bản cũ hơn, hoặc bị chỉnh sai) không còn tài khoản Admin nào,
-// tự thêm lại tài khoản Admin mặc định để không bao giờ bị khóa hoàn toàn ngoài quyền truy cập.
-function ensureAdminPresent(list) {
-  if (list.some((u) => u.role === "admin")) return list;
-  return [...list, SEED_USERS[0]];
-}
-
 export default function App() {
-  const [users, setUsers] = useState(() => ensureAdminPresent(loadJSON(USERS_KEY, SEED_USERS)));
-  const [tasks, setTasks] = useState(() => loadJSON(TASKS_KEY, []));
-  const [moduleRecords, setModuleRecords] = useState(() => emptyModuleRecords());
-  const [currentUserId, setCurrentUserId] = useState(() => loadJSON(SESSION_KEY, null));
+  const [users, setUsers] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [moduleRecords, setModuleRecords] = useState({});
+  const [currentUserId, setCurrentUserId] = useState(() => loadSession(null));
+  const [sessionChecked, setSessionChecked] = useState(false);
   const [activeNav, setActiveNav] = useState("overview");
 
   const [loginForm, setLoginForm] = useState({ email: "", password: "" });
   const [loginError, setLoginError] = useState("");
+  const [loginBusy, setLoginBusy] = useState(false);
+
+  // Dữ liệu dùng chung giờ nằm trên máy chủ (Vercel + Upstash Redis) thay vì trình duyệt,
+  // nên phải tải bất đồng bộ qua /api/data — mọi thiết bị/đăng nhập đều thấy cùng một dữ liệu.
+  async function loadAllData() {
+    const [u, t, ...mods] = await Promise.all([
+      fetchData(USERS_KEY, []),
+      fetchData(TASKS_KEY, []),
+      ...GENERIC_MODULE_ORDER.map((k) => fetchData(moduleKey(k), [])),
+    ]);
+    setUsers(u);
+    setTasks(t);
+    const records = {};
+    GENERIC_MODULE_ORDER.forEach((k, i) => { records[k] = mods[i]; });
+    setModuleRecords(records);
+  }
+
+  // Nếu trình duyệt còn phiên đăng nhập từ trước, tải lại dữ liệu để xác nhận tài khoản đó
+  // vẫn tồn tại trên máy chủ trước khi vào thẳng ứng dụng.
+  useEffect(() => {
+    if (!currentUserId) { setSessionChecked(true); return; }
+    loadAllData().then(() => setSessionChecked(true));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const currentUser = useMemo(() => users.find((u) => u.id === currentUserId) || null, [users, currentUserId]);
   const isAdmin = currentUser?.role === "admin";
@@ -53,36 +60,43 @@ export default function App() {
 
   function persistUsers(next) {
     setUsers(next);
-    saveJSON(USERS_KEY, next);
+    persistData(USERS_KEY, next);
   }
 
   function persistTasks(next) {
     setTasks(next);
-    saveJSON(TASKS_KEY, next);
+    persistData(TASKS_KEY, next);
   }
 
   function persistModule(key, next) {
     setModuleRecords((prev) => ({ ...prev, [key]: next }));
-    saveJSON(moduleKey(key), next);
+    persistData(moduleKey(key), next);
   }
 
-  function login() {
-    const email = loginForm.email.trim().toLowerCase();
-    const user = users.find((u) => u.email.toLowerCase() === email && u.password === loginForm.password);
+  async function login() {
+    setLoginBusy(true);
+    const { user, error } = await loginRequest(loginForm.email.trim(), loginForm.password);
     if (!user) {
-      setLoginError("Email hoặc mật khẩu không đúng.");
+      setLoginError(error || "Email hoặc mật khẩu không đúng.");
+      setLoginBusy(false);
       return;
     }
+    await loadAllData();
     setCurrentUserId(user.id);
-    saveJSON(SESSION_KEY, user.id);
+    saveSession(user.id);
     setLoginForm({ email: "", password: "" });
     setLoginError("");
+    setSessionChecked(true);
+    setLoginBusy(false);
   }
 
   function logout() {
     setCurrentUserId(null);
-    saveJSON(SESSION_KEY, null);
+    saveSession(null);
     setActiveNav("overview");
+    setUsers([]);
+    setTasks([]);
+    setModuleRecords({});
   }
 
   const pageStyle = { fontFamily: "'Inter', system-ui, sans-serif", background: COLORS.surface, minHeight: "100vh" };
@@ -109,6 +123,16 @@ export default function App() {
       <BrandBadges fedexHeight={20} viettelHeight={18} />
     </div>
   );
+
+  // ---- Đang xác nhận phiên đăng nhập cũ (nếu có) trước khi quyết định hiển thị gì ----
+  if (!sessionChecked) {
+    return (
+      <div style={{ ...pageStyle, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {globalStyle}
+        <span style={{ color: COLORS.muted, fontSize: 14 }}>Đang tải…</span>
+      </div>
+    );
+  }
 
   // ---- Login screen ----
   if (!currentUser) {
@@ -145,12 +169,14 @@ export default function App() {
               />
               <button
                 onClick={login}
+                disabled={loginBusy}
                 style={{
                   background: COLORS.accentGrad, color: "#fff", border: "none",
-                  borderRadius: 6, padding: "10px 14px", fontSize: 14, fontWeight: 600, cursor: "pointer", marginTop: 4,
+                  borderRadius: 6, padding: "10px 14px", fontSize: 14, fontWeight: 600,
+                  cursor: loginBusy ? "default" : "pointer", opacity: loginBusy ? 0.7 : 1, marginTop: 4,
                 }}
               >
-                Đăng nhập
+                {loginBusy ? "Đang đăng nhập…" : "Đăng nhập"}
               </button>
             </div>
             {loginError && <div style={{ color: COLORS.danger, fontSize: 13, marginTop: 10 }}>{loginError}</div>}

@@ -29,3 +29,10 @@ dist-ssr
 .vercel
 .env*
 recovery-codes.txt
+
+.env*
+
+# Local Claude Code agent/skill tooling files
+.agents
+.claude
+skills-lock.json
