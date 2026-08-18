@@ -1,14 +1,17 @@
-import nodemailer from "nodemailer";
-
 const PRIORITY_LABELS = { high: "Cao", medium: "Trung bình", low: "Thấp" };
+
+// Gmail SMTP trực tiếp bị Google chặn khi đăng nhập từ IP máy chủ đám mây (Vercel) dù App
+// Password đúng — nên dùng Resend (HTTP API) làm nơi gửi thật; Reply-To vẫn trỏ về Gmail
+// thật của người giao việc để người nhận bấm "Trả lời" là tới đúng người.
+const RESEND_FROM = "Dự án FedEx <onboarding@resend.dev>";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
-    res.status(500).json({ error: "Chưa cấu hình tài khoản gửi email." });
+  if (!process.env.RESEND_API_KEY) {
+    res.status(500).json({ error: "Chưa cấu hình dịch vụ gửi email." });
     return;
   }
 
@@ -40,17 +43,25 @@ export default async function handler(req, res) {
   ].filter((l) => l !== null);
 
   try {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        from: RESEND_FROM,
+        to: [assigneeEmail],
+        reply_to: assignerEmail || undefined,
+        subject: `[Công việc mới] ${title}`,
+        text: bodyLines.join("\n"),
+      }),
     });
-    await transporter.sendMail({
-      from: `"${assignerName ? assignerName + " - " : ""}Dự án FedEx" <${process.env.GMAIL_USER}>`,
-      to: assigneeEmail,
-      replyTo: assignerEmail || process.env.GMAIL_USER,
-      subject: `[Công việc mới] ${title}`,
-      text: bodyLines.join("\n"),
-    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      res.status(502).json({ error: "Không gửi được email: " + (data.message || resp.statusText) });
+      return;
+    }
     res.status(200).json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: "Không gửi được email: " + err.message });
