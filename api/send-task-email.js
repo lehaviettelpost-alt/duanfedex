@@ -10,7 +10,10 @@ export default async function handler(req, res) {
     res.status(405).json({ error: "Method not allowed" });
     return;
   }
-  if (!process.env.RESEND_API_KEY) {
+  let resendApiKey = process.env.RESEND_API_KEY || "";
+  if (resendApiKey.charCodeAt(0) === 0xFEFF) resendApiKey = resendApiKey.slice(1);
+  resendApiKey = resendApiKey.trim();
+  if (!resendApiKey) {
     res.status(500).json({ error: "Chưa cấu hình dịch vụ gửi email." });
     return;
   }
@@ -46,7 +49,7 @@ export default async function handler(req, res) {
     const resp = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        Authorization: `Bearer ${resendApiKey}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
