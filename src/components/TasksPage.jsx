@@ -62,6 +62,29 @@ export default function TasksPage({ tasks, users, currentUser, isAdmin, canManag
     return { total, byStatus, done: byStatus.done, doing: byStatus.doing, overdue };
   }, [tasks]);
 
+  function notifyAssignee(task) {
+    const assigneeUser = users.find((u) => u.name === task.assignee);
+    if (!assigneeUser?.email) return;
+    fetch("/api/send-task-email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        assigneeEmail: assigneeUser.email,
+        assigneeName: assigneeUser.name,
+        assignerName: currentUser.name,
+        assignerEmail: currentUser.email,
+        taskCode: task.code,
+        title: task.title,
+        description: task.description,
+        priority: task.priority,
+        assignedDate: task.assignedDate,
+        deadline: task.deadline,
+      }),
+    }).catch(() => {
+      // best effort — việc vẫn được tạo dù gửi email thất bại (mất mạng, chưa cấu hình...)
+    });
+  }
+
   function addTask() {
     if (!form.title.trim() || !form.assignee.trim()) {
       setError("Nhập tên công việc và người phụ trách trước đã.");
@@ -86,6 +109,7 @@ export default function TasksPage({ tasks, users, currentUser, isAdmin, canManag
       result: null,
     };
     onPersistTasks([newTask, ...tasks]);
+    notifyAssignee(newTask);
     setForm({
       title: "", description: "", assignee: "", priority: "medium", assignedDate: todayIsoDate(), deadline: "",
       assigner: "", frequency: FREQUENCY_OPTIONS[0], collaborators: "",
