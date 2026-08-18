@@ -12,6 +12,7 @@ import GenericModule from "./components/GenericModule";
 import FeedbackPage from "./components/FeedbackPage";
 import ChamCongPage from "./components/ChamCongPage";
 import VanBanPage from "./components/VanBanPage";
+import SoGiaoBanPage from "./components/SoGiaoBanPage";
 import { BrandBadges } from "./components/BrandLogos";
 
 const USERS_KEY = "duanfedex-users";
@@ -222,6 +223,15 @@ export default function App() {
         users={users}
         canManage={canManageTasks}
         onPersist={(next) => persistModule("vanban", next)}
+      />
+    );
+  } else if (activeNav === "giaoban") {
+    page = (
+      <SoGiaoBanPage
+        records={moduleRecords.giaoban || []}
+        users={users}
+        canManage={canManageTasks}
+        onPersist={(next) => persistModule("giaoban", next)}
       />
     );
   } else if (GENERIC_MODULES[activeNav]) {

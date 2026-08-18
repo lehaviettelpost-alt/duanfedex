@@ -3,16 +3,13 @@ import { NotebookPen, FileText, Award, UserCheck, Link2, FileClock, MessageCircl
 // Mỗi module dùng chung GenericModule.jsx để thêm/xóa/trả lời, lưu localStorage riêng theo "key".
 // "required: false" đánh dấu trường không bắt buộc khi thêm mới.
 export const GENERIC_MODULES = {
+  // Sổ giao ban có giao diện riêng (SoGiaoBanPage.jsx: form biên bản họp + giao việc từ nội dung
+  // cuộc họp) thay vì bảng GenericModule — mục này chỉ giữ label/icon dùng chung cho Sidebar/Tổng quan.
   giaoban: {
     key: "giaoban",
     label: "Sổ giao ban",
     icon: NotebookPen,
-    fields: [
-      { key: "date", label: "Ngày", type: "date" },
-      { key: "title", label: "Tiêu đề", type: "text" },
-      { key: "content", label: "Nội dung bàn giao", type: "textarea" },
-      { key: "owner", label: "Người phụ trách", type: "user" },
-    ],
+    fields: [],
   },
   // Văn bản chỉ đạo có giao diện riêng (VanBanPage.jsx: form + giao việc từ văn bản + danh sách)
   // thay vì bảng GenericModule — mục này chỉ giữ label/icon dùng chung cho Sidebar/Tổng quan.
