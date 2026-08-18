@@ -13,6 +13,7 @@ import FeedbackPage from "./components/FeedbackPage";
 import ChamCongPage from "./components/ChamCongPage";
 import VanBanPage from "./components/VanBanPage";
 import SoGiaoBanPage from "./components/SoGiaoBanPage";
+import LinkManagerPage from "./components/LinkManagerPage";
 import { BrandBadges } from "./components/BrandLogos";
 
 const USERS_KEY = "duanfedex-users";
@@ -232,6 +233,15 @@ export default function App() {
         users={users}
         canManage={canManageTasks}
         onPersist={(next) => persistModule("giaoban", next)}
+      />
+    );
+  } else if (activeNav === "link") {
+    page = (
+      <LinkManagerPage
+        records={moduleRecords.link || []}
+        currentUser={currentUser}
+        canDeleteAny={canManageTasks}
+        onPersist={(next) => persistModule("link", next)}
       />
     );
   } else if (GENERIC_MODULES[activeNav]) {

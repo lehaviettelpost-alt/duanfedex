@@ -38,16 +38,13 @@ export const GENERIC_MODULES = {
     icon: UserCheck,
     fields: [],
   },
+  // Quản lý link có giao diện riêng (LinkManagerPage.jsx: bảng có số TT, lượt click, bộ lọc
+  // theo tháng/người lưu) thay vì bảng GenericModule — mục này chỉ giữ label/icon dùng chung.
   link: {
     key: "link",
     label: "Quản lý link",
     icon: Link2,
-    fields: [
-      { key: "title", label: "Tên link", type: "text" },
-      { key: "url", label: "URL", type: "url" },
-      { key: "category", label: "Danh mục", type: "text", required: false },
-      { key: "note", label: "Ghi chú", type: "text", required: false },
-    ],
+    fields: [],
   },
   baocao: {
     key: "baocao",
