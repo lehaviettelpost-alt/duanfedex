@@ -58,7 +58,7 @@ function FeedbackDonut({ records, onNavigate }) {
   );
 }
 
-export default function OverviewPage({ tasks, users, moduleRecords, currentUser, onNavigate }) {
+export default function OverviewPage({ tasks, users, moduleRecords, currentUser, canAccessPersonnel, onNavigate }) {
   const stats = useMemo(() => {
     const total = tasks.length;
     const byStatus = STATUSES.reduce((acc, s) => {
@@ -125,18 +125,20 @@ export default function OverviewPage({ tasks, users, moduleRecords, currentUser,
       <div style={cardStyle}>
         <span style={{ fontWeight: 600, fontSize: 14, color: COLORS.ink, display: "block", marginBottom: 12 }}>Các module khác</span>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(170px, 1fr))", gap: 12 }}>
-          <button
-            onClick={() => onNavigate("personnel")}
-            style={{ textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", background: "#fff" }}
-          >
-            <div style={{ width: 34, height: 34, borderRadius: 9, background: COLORS.surface, color: COLORS.purple, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              <Users size={17} />
-            </div>
-            <div>
-              <div className="tb-title" style={{ fontSize: 20, fontWeight: 700, color: COLORS.ink }}>{users.length}</div>
-              <div style={{ fontSize: 12, color: COLORS.muted }}>Nhân sự</div>
-            </div>
-          </button>
+          {canAccessPersonnel && (
+            <button
+              onClick={() => onNavigate("personnel")}
+              style={{ textAlign: "left", cursor: "pointer", display: "flex", alignItems: "center", gap: 10, border: `1px solid ${COLORS.border}`, borderRadius: 10, padding: "12px 14px", background: "#fff" }}
+            >
+              <div style={{ width: 34, height: 34, borderRadius: 9, background: COLORS.surface, color: COLORS.purple, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <Users size={17} />
+              </div>
+              <div>
+                <div className="tb-title" style={{ fontSize: 20, fontWeight: 700, color: COLORS.ink }}>{users.length}</div>
+                <div style={{ fontSize: 12, color: COLORS.muted }}>Nhân sự</div>
+              </div>
+            </button>
+          )}
           {GENERIC_MODULE_ORDER.map((key) => {
             const config = GENERIC_MODULES[key];
             const Icon = config.icon;

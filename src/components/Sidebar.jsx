@@ -25,7 +25,8 @@ GENERIC_MODULE_ORDER.forEach((key) => {
   }
 });
 
-export default function Sidebar({ active, onNavigate }) {
+export default function Sidebar({ active, onNavigate, canAccessPersonnel }) {
+  const items = canAccessPersonnel ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.key !== "personnel");
   return (
     <nav className="tb-sidebar" style={{ background: COLORS.sidebarBg, display: "flex", flexDirection: "column" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "18px 14px 14px" }}>
@@ -33,7 +34,7 @@ export default function Sidebar({ active, onNavigate }) {
         <ViettelPostMark height={22} />
       </div>
       <div className="tb-sidebar-list" style={{ display: "flex", flexDirection: "column", gap: 2, padding: "6px 10px 16px" }}>
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const Icon = item.icon;
           const isActive = active === item.key;
           return (

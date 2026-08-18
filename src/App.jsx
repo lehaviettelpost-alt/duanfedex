@@ -60,6 +60,14 @@ export default function App() {
   const isSubadmin = currentUser?.role === "subadmin";
   const canManageTasks = isAdmin || isSubadmin;
 
+  // Chỉ Admin/Subadmin được vào module Nhân sự — nếu vai trò đổi hoặc điều hướng không hợp lệ
+  // (vd. bị hạ quyền trong lúc đang mở trang này), tự chuyển về Tổng quan.
+  useEffect(() => {
+    if (activeNav === "personnel" && sessionChecked && currentUser && !canManageTasks) {
+      setActiveNav("overview");
+    }
+  }, [activeNav, sessionChecked, currentUser, canManageTasks]);
+
   function persistUsers(next) {
     setUsers(next);
     persistData(USERS_KEY, next);
@@ -191,10 +199,10 @@ export default function App() {
   // ---- Main app shell ----
   let page = null;
   if (activeNav === "overview") {
-    page = <OverviewPage tasks={tasks} users={users} moduleRecords={moduleRecords} currentUser={currentUser} onNavigate={setActiveNav} />;
+    page = <OverviewPage tasks={tasks} users={users} moduleRecords={moduleRecords} currentUser={currentUser} canAccessPersonnel={canManageTasks} onNavigate={setActiveNav} />;
   } else if (activeNav === "tasks") {
     page = <TasksPage tasks={tasks} users={users} currentUser={currentUser} isAdmin={isAdmin} canManageTasks={canManageTasks} onPersistTasks={persistTasks} />;
-  } else if (activeNav === "personnel") {
+  } else if (activeNav === "personnel" && canManageTasks) {
     page = <PersonnelPage users={users} currentUser={currentUser} isAdmin={isAdmin} isSubadmin={isSubadmin} onPersistUsers={persistUsers} />;
   } else if (activeNav === "calendar") {
     page = <CalendarPage tasks={tasks} />;
@@ -263,7 +271,7 @@ export default function App() {
     <div style={pageStyle}>
       {globalStyle}
       <div className="tb-shell">
-        <Sidebar active={activeNav} onNavigate={setActiveNav} />
+        <Sidebar active={activeNav} onNavigate={setActiveNav} canAccessPersonnel={canManageTasks} />
 
         <div className="tb-content">
           <div style={{ maxWidth: 1100, margin: "0 auto" }}>
