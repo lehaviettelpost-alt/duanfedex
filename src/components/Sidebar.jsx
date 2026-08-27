@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { key: "link", label: GENERIC_MODULES.link.label, icon: GENERIC_MODULES.link.icon },
   { key: "baocao", label: GENERIC_MODULES.baocao.label, icon: GENERIC_MODULES.baocao.icon },
   { key: "feedback", label: GENERIC_MODULES.feedback.label, icon: GENERIC_MODULES.feedback.icon },
+  { key: "chat", label: GENERIC_MODULES.chat.label, icon: GENERIC_MODULES.chat.icon },
   { key: "calendar", label: "Calendar", icon: CalendarDays },
 ];
 

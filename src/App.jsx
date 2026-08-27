@@ -14,6 +14,7 @@ import ChamCongPage from "./components/ChamCongPage";
 import VanBanPage from "./components/VanBanPage";
 import SoGiaoBanPage from "./components/SoGiaoBanPage";
 import LinkManagerPage from "./components/LinkManagerPage";
+import ChatPage from "./components/ChatPage";
 import { BrandBadges } from "./components/BrandLogos";
 
 const USERS_KEY = "duanfedex-users";
@@ -81,6 +82,13 @@ export default function App() {
   function persistModule(key, next) {
     setModuleRecords((prev) => ({ ...prev, [key]: next }));
     persistData(moduleKey(key), next);
+  }
+
+  // Chat không có kênh realtime (không có WebSocket) nên "làm mới" bằng cách tải lại dữ liệu
+  // module này định kỳ trong khi trang Chat đang mở, để gần như thấy tin nhắn mới của người khác.
+  async function refreshModule(key) {
+    const next = await fetchData(moduleKey(key), []);
+    setModuleRecords((prev) => ({ ...prev, [key]: next }));
   }
 
   async function login() {
@@ -250,6 +258,16 @@ export default function App() {
         currentUser={currentUser}
         canDeleteAny={canManageTasks}
         onPersist={(next) => persistModule("link", next)}
+      />
+    );
+  } else if (activeNav === "chat") {
+    page = (
+      <ChatPage
+        records={moduleRecords.chat || []}
+        users={users}
+        currentUser={currentUser}
+        onPersist={(next) => persistModule("chat", next)}
+        onRefresh={() => refreshModule("chat")}
       />
     );
   } else if (GENERIC_MODULES[activeNav]) {

@@ -1,4 +1,4 @@
-import { NotebookPen, FileText, Award, UserCheck, Link2, FileClock, MessageCircleHeart } from "lucide-react";
+import { NotebookPen, FileText, Award, UserCheck, Link2, FileClock, MessageCircleHeart, MessagesSquare } from "lucide-react";
 
 // Mỗi module dùng chung GenericModule.jsx để thêm/xóa/trả lời, lưu localStorage riêng theo "key".
 // "required: false" đánh dấu trường không bắt buộc khi thêm mới.
@@ -71,6 +71,14 @@ export const GENERIC_MODULES = {
       { key: "status", label: "Trạng thái xử lý", type: "select", options: ["Chưa xử lý", "Đang xử lý", "Đã xử lý"] },
     ],
   },
+  // Chat nội bộ có giao diện riêng (ChatPage.jsx: kênh chung + nhắn riêng theo danh bạ email)
+  // thay vì bảng GenericModule — mục này chỉ giữ label/icon dùng chung.
+  chat: {
+    key: "chat",
+    label: "Chat nội bộ",
+    icon: MessagesSquare,
+    fields: [],
+  },
 };
 
-export const GENERIC_MODULE_ORDER = ["giaoban", "vanban", "chamdiem", "chamcong", "link", "baocao", "feedback"];
+export const GENERIC_MODULE_ORDER = ["giaoban", "vanban", "chamdiem", "chamcong", "link", "baocao", "feedback", "chat"];
