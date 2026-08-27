@@ -36,3 +36,6 @@ recovery-codes.txt
 .agents
 .claude
 skills-lock.json
+
+# Stray downloads that don't belong in the project (accidentally saved into this folder)
+*.exe

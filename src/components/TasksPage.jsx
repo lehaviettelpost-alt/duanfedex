@@ -1,11 +1,12 @@
 import React, { useMemo, useState } from "react";
-import { Plus, Trash2, X, Search, AlertTriangle, MessageSquare, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, Trash2, X, Search, AlertTriangle, MessageSquare, ChevronDown, ChevronUp, FileSpreadsheet } from "lucide-react";
 import {
   COLORS, PRIORITIES, STATUSES, DASHBOARD_TILES, STATUS_BAR_COLORS, DEADLINE_HEALTH,
   isOverdue, getDeadlineHealth, todayIsoDate, nextTaskCode, monthLabel, inputStyle, cardStyle,
 } from "../theme";
 import { ClipboardList, Clock, CheckCircle2 } from "lucide-react";
 import TaskDetailPanel, { FREQUENCY_OPTIONS } from "./TaskDetailPanel";
+import TaskExcelImport from "./TaskExcelImport";
 
 const HEALTH_FILTERS = ["overdue", "due", "ontrack"];
 
@@ -21,6 +22,12 @@ export default function TasksPage({ tasks, users, currentUser, isAdmin, canManag
   });
   const [error, setError] = useState("");
   const [expandedId, setExpandedId] = useState(null);
+  const [showExcelImport, setShowExcelImport] = useState(false);
+
+  const nextCodeStart = useMemo(() => {
+    const m = /^CV(\d+)$/.exec(nextTaskCode(tasks));
+    return m ? parseInt(m[1], 10) : 1;
+  }, [tasks]);
 
   const assignees = useMemo(() => Array.from(new Set(tasks.map((t) => t.assignee))).sort(), [tasks]);
   const months = useMemo(
@@ -118,6 +125,11 @@ export default function TasksPage({ tasks, users, currentUser, isAdmin, canManag
     setShowForm(false);
   }
 
+  function importTasksFromExcel(newTasks) {
+    onPersistTasks([...newTasks, ...tasks]);
+    newTasks.forEach(notifyAssignee);
+  }
+
   function removeTask(id) {
     onPersistTasks(tasks.filter((t) => t.id !== id));
     if (expandedId === id) setExpandedId(null);
@@ -135,15 +147,26 @@ export default function TasksPage({ tasks, users, currentUser, isAdmin, canManag
           <p style={{ color: COLORS.muted, fontSize: 14, margin: "4px 0 0" }}>Giao việc, cập nhật tiến độ và trạng thái</p>
         </div>
         {canManageTasks && (
-          <button
-            onClick={() => setShowForm((s) => !s)}
-            style={{
-              display: "flex", alignItems: "center", gap: 6, background: COLORS.accentGrad, color: "#fff",
-              border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer",
-            }}
-          >
-            <Plus size={16} /> Giao việc mới
-          </button>
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button
+              onClick={() => setShowExcelImport(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, background: "#fff", color: COLORS.purple,
+                border: `1px solid ${COLORS.purple}`, borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <FileSpreadsheet size={16} /> Giao việc bằng Excel
+            </button>
+            <button
+              onClick={() => setShowForm((s) => !s)}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, background: COLORS.accentGrad, color: "#fff",
+                border: "none", borderRadius: 8, padding: "10px 16px", fontSize: 14, fontWeight: 600, cursor: "pointer",
+              }}
+            >
+              <Plus size={16} /> Giao việc mới
+            </button>
+          </div>
         )}
       </div>
 
@@ -365,6 +388,15 @@ export default function TasksPage({ tasks, users, currentUser, isAdmin, canManag
           </div>
         )}
       </div>
+
+      {showExcelImport && (
+        <TaskExcelImport
+          users={users}
+          nextCodeStart={nextCodeStart}
+          onImport={importTasksFromExcel}
+          onClose={() => setShowExcelImport(false)}
+        />
+      )}
     </>
   );
 }
