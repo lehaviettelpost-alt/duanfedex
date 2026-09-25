@@ -15,6 +15,7 @@ import VanBanPage from "./components/VanBanPage";
 import SoGiaoBanPage from "./components/SoGiaoBanPage";
 import LinkManagerPage from "./components/LinkManagerPage";
 import ChatPage from "./components/ChatPage";
+import HanhTrinhDonPage from "./components/HanhTrinhDonPage";
 import { BrandBadges } from "./components/BrandLogos";
 
 const USERS_KEY = "duanfedex-users";
@@ -270,6 +271,8 @@ export default function App() {
         onRefresh={() => refreshModule("chat")}
       />
     );
+  } else if (activeNav === "hanhtrinh") {
+    page = <HanhTrinhDonPage />;
   } else if (GENERIC_MODULES[activeNav]) {
     const key = activeNav;
     page = (
@@ -292,7 +295,7 @@ export default function App() {
         <Sidebar active={activeNav} onNavigate={setActiveNav} canAccessPersonnel={canManageTasks} />
 
         <div className="tb-content">
-          <div style={{ maxWidth: 1100, margin: "0 auto" }}>
+          <div style={{ maxWidth: activeNav === "hanhtrinh" ? 1320 : 1100, margin: "0 auto" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 10, marginBottom: 18 }}>
               <span />
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>

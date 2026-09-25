@@ -1,0 +1,464 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Báo cáo hành trình đơn | Dự án FedEx</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);
+  --bg:#EEF1F4;--panel:#FFFFFF;--ink:#1B2437;--muted:#5E6878;--line:#DCE1E8;--soft:#F5F7FA;
+  --fm:#2F3B63;--mm:#3E9A82;--lm:#E99A2C;
+  --ok:#2E8B57;--slow:#D98A00;--bad:#D22630;--done:#4A6FA5;--ret:#8A6BB0;
+  --fm-t:#E6E9F3;--mm-t:#E2F2ED;--lm-t:#FCF0DD;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121722;--panel:#1B2230;--ink:#E7EBF2;--muted:#9AA4B5;--line:#2D3648;--soft:#222A3A;
+  --fm:#8C9BD6;--mm:#5CC3A6;--lm:#F2B45A;--ok:#4CC282;--slow:#F0AE33;--bad:#F2626A;--done:#7FA3DB;--ret:#B79AE0;
+  --fm-t:#262E48;--mm-t:#1D3530;--lm-t:#3A2E1A;}}
+:root[data-theme="dark"]{
+  --bg:#121722;--panel:#1B2230;--ink:#E7EBF2;--muted:#9AA4B5;--line:#2D3648;--soft:#222A3A;
+  --fm:#8C9BD6;--mm:#5CC3A6;--lm:#F2B45A;--ok:#4CC282;--slow:#F0AE33;--bad:#F2626A;--done:#7FA3DB;--ret:#B79AE0;
+  --fm-t:#262E48;--mm-t:#1D3530;--lm-t:#3A2E1A;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.5;font-variant-numeric:tabular-nums}
+.wrap{max-width:1280px;margin:0 auto;padding:24px 20px 60px}
+h1{font-size:26px;line-height:1.2;margin:0;font-weight:800;letter-spacing:-.01em}
+h2{font-size:17px;margin:0 0 4px;font-weight:700}
+.sub{color:var(--muted);font-size:13.5px;margin:0}
+header{display:flex;flex-wrap:wrap;gap:16px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.ctl{display:flex;flex-direction:column;gap:4px;font-size:12.5px;color:var(--muted)}
+select,input{font:inherit;font-size:14px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px}
+input[type=number]{width:74px}
+button,.btn{font:inherit;font-size:14px;font-weight:600;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 12px;cursor:pointer}
+.btn.primary{background:var(--fm);color:#fff;border-color:var(--fm)}
+:root[data-theme="dark"] .btn.primary{color:#121722}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .btn.primary{color:#121722}}
+button:focus-visible,select:focus-visible,input:focus-visible,.btn:focus-within{outline:2px solid var(--mm);outline-offset:2px}
+.note{font-size:12.5px;color:var(--muted)}
+.back{display:inline-block;font-size:13px;font-weight:600;color:var(--mm);text-decoration:none;margin-bottom:6px}.back:hover{text-decoration:underline}
+body.embedded .back{display:none}
+body.embedded{background:transparent}
+body.embedded .wrap{max-width:none;padding:0 0 8px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+
+/* Journey strip */
+.journey{padding:18px 18px 14px;margin-bottom:16px}
+.jhead{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.strip{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:0}
+.stage{position:relative;padding:12px 26px 14px 20px;color:#fff;clip-path:polygon(0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%,16px 50%);min-height:74px}
+.stage:first-child{clip-path:polygon(0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%)}
+.stage.fm{background:var(--fm)}.stage.mm{background:var(--mm)}.stage.lm{background:var(--lm)}
+:root[data-theme="dark"] .stage{color:#121722}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .stage{color:#121722}}
+.stage .nm{font-weight:600;font-size:13px;opacity:.9}
+.stage .ct{font-size:28px;font-weight:800;line-height:1.1}
+.stage .ct small{font-size:13px;font-weight:600;opacity:.85;margin-left:4px}
+.nodes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+.nodecol{display:flex;flex-wrap:wrap;gap:6px;align-content:flex-start}
+.node{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;padding:4px 8px 4px 4px;border-radius:20px;background:var(--soft);border:1px solid var(--line)}
+.node b{display:inline-block;min-width:34px;text-align:center;border-radius:14px;padding:1px 6px;font-size:12px;color:#fff}
+.node.fm b{background:var(--fm)}.node.mm b{background:var(--mm)}.node.lm b{background:var(--lm)}
+.node .n{font-weight:700}
+.node.empty{opacity:.45}
+
+/* KPIs */
+.kpis{display:grid;grid-template-columns:1.4fr repeat(3,1fr);gap:12px;margin-bottom:16px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px}
+.kpi .v{font-size:30px;font-weight:800;line-height:1.1}
+.kpi .l{font-size:13px;color:var(--muted)}
+.kpi .d{font-size:12.5px;color:var(--muted);margin-top:6px}
+.kpi.big .v{font-size:44px}
+.split{display:flex;height:10px;border-radius:6px;overflow:hidden;margin-top:10px;background:var(--soft)}
+.split span{display:block;height:100%}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12.5px;margin-top:8px;color:var(--muted)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.evalrow{display:grid;grid-template-columns:repeat(5,1fr);gap:0;margin-top:8px}
+.ev{padding:4px 10px 2px;border-left:3px solid var(--line)}
+.ev .v{font-size:22px}
+.ev .pct{font-size:12.5px;color:var(--muted)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px}
+.tblwrap{overflow-x:auto;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-weight:600;color:var(--muted);text-align:left;font-size:12.5px;padding:7px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tfoot td{font-weight:700;border-top:2px solid var(--line)}
+.bar{display:flex;height:8px;border-radius:4px;overflow:hidden;min-width:90px;background:var(--soft)}
+.bar span{height:100%}
+.tag{display:inline-block;font-size:11.5px;font-weight:600;border-radius:5px;padding:1px 6px;white-space:nowrap}
+.tag.fm{background:var(--fm-t);color:var(--fm)}.tag.mm{background:var(--mm-t);color:var(--mm)}.tag.lm{background:var(--lm-t);color:var(--lm)}
+.pill{display:inline-block;font-size:12px;font-weight:600;border-radius:12px;padding:2px 9px;white-space:nowrap;color:#fff}
+.c-ok{background:var(--ok)}.c-slow{background:var(--slow)}.c-bad{background:var(--bad)}.c-done{background:var(--done)}.c-ret{background:var(--ret)}
+:root[data-theme="dark"] .pill{color:#121722}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .pill{color:#121722}}
+
+.hist{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:130px;margin-top:14px}
+.hcol{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:4px}
+.hcol .hb{width:100%;max-width:56px;border-radius:6px 6px 2px 2px;background:var(--mm);min-height:2px}
+.hcol .hv{font-size:12.5px;font-weight:700}
+.hlab{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;font-size:11.5px;color:var(--muted);text-align:center;margin-top:4px}
+.stats3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px}
+.stats3 div{background:var(--soft);border-radius:10px;padding:8px 10px}
+.stats3 b{display:block;font-size:20px}
+.stats3 span{font-size:12px;color:var(--muted)}
+
+.filters{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:10px}
+.chip{font-size:13px;font-weight:600;padding:5px 11px;border-radius:16px}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.search{margin-left:auto;min-width:200px}
+.reason{font-size:12.5px;color:var(--muted);min-width:240px;max-width:380px}
+#tOrders td{white-space:nowrap}#tOrders td.reason{white-space:normal}
+.scroll{max-height:620px;overflow:auto;border:1px solid var(--line);border-radius:10px}
+.scroll th{position:sticky;top:0;background:var(--panel);z-index:1}
+.mono{font-feature-settings:"tnum";font-weight:600;white-space:nowrap}
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px 20px;margin-top:12px}
+.rule{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13.5px;padding:6px 0;border-bottom:1px dashed var(--line)}
+details summary{cursor:pointer;font-weight:700;font-size:17px}
+.logic{font-size:13.5px;color:var(--muted);margin:10px 0 0;padding-left:18px}
+.logic li{margin-bottom:4px}
+.warn{background:var(--lm-t);color:var(--ink);border-radius:10px;padding:8px 12px;font-size:13px;margin-bottom:14px;display:none}
+.empty-state{padding:30px;text-align:center;color:var(--muted)}
+@media (max-width:980px){.kpis{grid-template-columns:1fr 1fr}.kpi.big{grid-column:1/-1}.grid2{grid-template-columns:1fr}}
+@media (max-width:640px){
+  .wrap{padding:16px 12px 40px}h1{font-size:21px}
+  .strip,.nodes{grid-template-columns:1fr}
+  .stage,.stage:first-child{clip-path:none;border-radius:10px;margin-bottom:6px}
+  .kpis{grid-template-columns:1fr}.evalrow{grid-template-columns:repeat(3,1fr);row-gap:8px}
+  .search{margin-left:0;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <a class="back" href="/" target="_top">← Bản đồ công việc Dự án FedEx</a>
+    <h1 id="title">Hành trình đơn trong ngày</h1>
+    <p class="sub" id="srcinfo"></p>
+  </div>
+  <div class="controls">
+    <label class="ctl">Ngày tạo đơn
+      <select id="day"></select></label>
+    <label class="ctl">Mốc giờ đánh giá
+      <input type="datetime-local" id="ref" step="60"></label>
+    <button id="nowBtn" type="button">Lấy giờ hiện tại</button>
+    <label class="btn primary">Nạp file bill mới<input type="file" id="file" accept=".xlsx,.xls,.csv" hidden></label>
+  </div>
+</header>
+<div class="warn" id="warn"></div>
+
+<section class="panel journey" aria-label="Phân bổ đơn theo khâu">
+  <div class="jhead">
+    <h2>Đơn đang nằm ở đâu trên hành trình</h2>
+    <span class="note">Theo trạng thái hiện tại, đối chiếu bảng mã trạng thái MVĐ</span>
+  </div>
+  <div class="strip" id="strip"></div>
+  <div class="nodes" id="nodes"></div>
+</section>
+
+<section class="kpis">
+  <div class="kpi big">
+    <div class="l">Tổng số đơn tạo trong ngày</div>
+    <div class="v" id="kTotal">0</div>
+    <div class="split" id="kSplit"></div>
+    <div class="legend" id="kLegend"></div>
+  </div>
+  <div class="kpi"><div class="l">Nội tỉnh</div><div class="v" id="kNoi">0</div><div class="d" id="kNoiP"></div></div>
+  <div class="kpi"><div class="l">Liên tỉnh</div><div class="v" id="kLien">0</div><div class="d" id="kLienP"></div></div>
+  <div class="kpi"><div class="l">Tỉnh phát</div><div class="v" id="kProv">0</div><div class="d" id="kProvP"></div></div>
+</section>
+
+<section class="panel" style="margin-bottom:16px">
+  <h2>Đánh giá hành trình</h2>
+  <p class="sub">So sánh thời gian nhập máy, thời gian trạng thái hiện tại và mốc giờ đánh giá, kết hợp vị trí bưu cục hiện tại</p>
+  <div class="split" id="eSplit" style="height:14px"></div>
+  <div class="evalrow" id="eRow"></div>
+</section>
+
+<div class="grid2">
+  <section class="panel">
+    <h2>Số đơn theo tỉnh phát</h2>
+    <p class="sub">Sắp xếp theo số đơn, thanh màu là kết quả đánh giá hành trình</p>
+    <div class="tblwrap"><table id="tProv"></table></div>
+  </section>
+  <section class="panel">
+    <h2>Tỷ lệ theo mã trạng thái</h2>
+    <p class="sub">Số đơn và tỷ lệ trên tổng đơn tạo trong ngày</p>
+    <div class="tblwrap"><table id="tStatus"></table></div>
+  </section>
+</div>
+
+<div class="grid2">
+  <section class="panel">
+    <h2>Thời gian từ lúc nhập máy</h2>
+    <p class="sub">Mốc giờ đánh giá trừ thời gian nhập máy</p>
+    <div class="hist" id="h1"></div><div class="hlab" id="h1l"></div>
+    <div class="stats3" id="s1"></div>
+  </section>
+  <section class="panel">
+    <h2>Thời gian đứng ở trạng thái hiện tại</h2>
+    <p class="sub">Mốc giờ đánh giá trừ thời gian trạng thái hiện tại</p>
+    <div class="hist" id="h2"></div><div class="hlab" id="h2l"></div>
+    <div class="stats3" id="s2"></div>
+  </section>
+</div>
+
+<section class="panel" style="margin-bottom:16px">
+  <h2>Chi tiết từng đơn</h2>
+  <div class="filters" id="chips"></div>
+  <div class="tblwrap scroll"><table id="tOrders"></table></div>
+</section>
+
+<section class="panel">
+  <details>
+    <summary>Quy tắc đánh giá hành trình</summary>
+    <p class="sub" style="margin-top:6px">Đổi ngưỡng bên dưới, dashboard tính lại ngay.</p>
+    <div class="rules">
+      <label class="rule">Phải rời bưu cục gốc sau nhập máy (giờ)<input type="number" min="1" data-k="leave"></label>
+      <label class="rule">Đứng tối đa ở một trạng thái khâu MM (giờ)<input type="number" min="1" data-k="dwellMM"></label>
+      <label class="rule">Đứng tối đa ở một trạng thái khâu LM (giờ)<input type="number" min="1" data-k="dwellLM"></label>
+      <label class="rule">Nội tỉnh tới khâu phát trong (giờ)<input type="number" min="1" data-k="slaNoi"></label>
+      <label class="rule">Liên tỉnh tới khâu phát trong (giờ)<input type="number" min="1" data-k="slaLien"></label>
+      <label class="rule">Liên miền tới khâu phát trong (giờ)<input type="number" min="1" data-k="slaMien"></label>
+      <label class="rule">Mã chi nhánh trung chuyển hợp lệ<input type="text" data-k="hubs" style="width:110px"></label>
+    </div>
+    <ol class="logic">
+      <li>Nội tỉnh khi TINH_NHAN trùng TINH_PHAT, khác nhau là liên tỉnh. Liên tỉnh khác miền (MIEN_NHAN khác MIEN_PHAT) được ghi chú thêm là liên miền.</li>
+      <li>Đã kết thúc: 501, 503, 504, 517. Hủy hoặc chuyển hoàn: 101, 106, 107, 201, 502, 505.</li>
+      <li>Sai hành trình: khâu MM mà chi nhánh hiện tại không phải chi nhánh gốc, chi nhánh phát hay chi nhánh trung chuyển; khâu LM (trừ 509) mà bưu cục hiện tại khác bưu cục phát; thời gian trạng thái sớm hơn thời gian nhập máy; đã sang MM/LM nhưng không có thời gian nhập máy; mã trạng thái không có trong bảng mã.</li>
+      <li>Chậm hành trình: quá ngưỡng rời bưu cục gốc, đứng quá lâu ở một trạng thái, chưa tới khâu phát khi đã quá thời gian chuẩn theo loại đơn, hoặc đang ở 506, 508, 509, 510.</li>
+      <li>Còn lại là đúng hành trình.</li>
+    </ol>
+  </details>
+</section>
+</div>
+
+<script>
+const EMBED_DATA = [{"MA_VANDON":"FED383817115372","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN ANH SƠN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:45:21","MA_BUUCUC_PHAT":"HBNAAS","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 16:20:23","UPDATED_AT":"25/09/2026 16:43:52"},{"MA_VANDON":"FED488192926258","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"VPC","TEN_QUANHUYEN_PHAT":"THÀNH PHỐ PHÚC YÊN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:00:55","MA_BUUCUC_PHAT":"HBVPPY","MA_CHINHANH_PHAT":"PHO","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED432923742854","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN THANH CHƯƠNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:40:37","MA_BUUCUC_PHAT":"HBNATC","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:35:14","UPDATED_AT":"25/09/2026 20:55:11"},{"MA_VANDON":"FED432923742898","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN THANH CHƯƠNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:35:04","MA_BUUCUC_PHAT":"HBNATC","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"DVCMBC","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:48:19","UPDATED_AT":"25/09/2026 20:55:11"},{"MA_VANDON":"FED877480121892","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:04:42","MA_BUUCUC_PHAT":"HBBGLG","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED432923742887","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN THANH CHƯƠNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:32:02","MA_BUUCUC_PHAT":"HBNATC","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:13:52","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED488192927313","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HTH","TEN_QUANHUYEN_PHAT":"THÀNH PHỐ HÀ TĨNH","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:04:11","MA_BUUCUC_PHAT":"HBHTTS","MA_CHINHANH_PHAT":"HTH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"DVCMBC","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:00:10","UPDATED_AT":"25/09/2026 20:18:07"},{"MA_VANDON":"FED877480121907","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:03:34","MA_BUUCUC_PHAT":"HBBGLG","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED432923742935","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN THANH CHƯƠNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:05:37","MA_BUUCUC_PHAT":"HBNATC","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"DVCMBC","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:48:41","UPDATED_AT":"25/09/2026 20:55:11"},{"MA_VANDON":"FED529161606675","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"TNN","TEN_QUANHUYEN_PHAT":"HUYỆN VÕ NHAI","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:07:08","MA_BUUCUC_PHAT":"HBTNVN","MA_CHINHANH_PHAT":"TNN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877480933512","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN ĐAN PHƯỢNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:07:33","MA_BUUCUC_PHAT":"TNTYD","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:22:27","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED470125239374","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:54:18","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:13:34","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED537541386384","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"QNH","TEN_QUANHUYEN_PHAT":"HUYỆN HẢI HÀ","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:06:50","MA_BUUCUC_PHAT":"HBQNHH","MA_CHINHANH_PHAT":"QNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:12:31","UPDATED_AT":"25/09/2026 20:18:07"},{"MA_VANDON":"FED877484968420","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN PHÚ XUYÊN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:05:07","MA_BUUCUC_PHAT":"DIX","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:21:12","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877207132468BS","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN NGHĨA ĐÀN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:54:25","MA_BUUCUC_PHAT":"NGDN","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:13:34","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED541391580269","LOAI_DON":"LIEN_MIEN","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MN","TINH_PHAT":"TGG","TEN_QUANHUYEN_PHAT":"THÀNH PHỐ MỸ THO","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:04:44","MA_BUUCUC_PHAT":"HBTGMT","MA_CHINHANH_PHAT":"DTP","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKNB","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:47:31","UPDATED_AT":"25/09/2026 20:55:11"},{"MA_VANDON":"FED877506900959","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"THA","TEN_QUANHUYEN_PHAT":"HUYỆN VĨNH LỘC","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:36:43","MA_BUUCUC_PHAT":"HBTHVL","MA_CHINHANH_PHAT":"THA","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"DVCMBC","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:01:56","UPDATED_AT":"25/09/2026 20:18:07"},{"MA_VANDON":"FED877210772626","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:40:56","MA_BUUCUC_PHAT":"HBBGLG","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:15:47","UPDATED_AT":"25/09/2026 20:36:55"},{"MA_VANDON":"FED877342897160","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"TBH","TEN_QUANHUYEN_PHAT":"HUYỆN THÁI THỤY","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:28:00","MA_BUUCUC_PHAT":"HBTBTT","MA_CHINHANH_PHAT":"HYN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:42:02","UPDATED_AT":"25/09/2026 20:55:11"},{"MA_VANDON":"FED877550392927","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:06:30","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877337146600","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN SƠN ĐỘNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:00:46","MA_BUUCUC_PHAT":"HBBGSD","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877468277588","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN THƯỜNG TÍN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:04:33","MA_BUUCUC_PHAT":"HBHNTN","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:22:14","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877550392960","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:01:51","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877341550179","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNM","TEN_QUANHUYEN_PHAT":"HUYỆN LÝ NHÂN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:40:45","MA_BUUCUC_PHAT":"HBHMLN","MA_CHINHANH_PHAT":"NBH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:14:09","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877484968409","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN PHÚ XUYÊN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:04:50","MA_BUUCUC_PHAT":"DIX","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:22:09","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877550392993","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:05:23","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877480121918","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:34:16","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:17:28","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877550392938","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:02:20","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877611927269","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN NGHĨA ĐÀN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:30:32","MA_BUUCUC_PHAT":"NGDN","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:12:31","UPDATED_AT":"25/09/2026 20:18:07"},{"MA_VANDON":"FED877484968410","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN PHÚ XUYÊN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:05:26","MA_BUUCUC_PHAT":"DIX","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:22:22","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877550392950","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:04:59","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877615274650","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN SÓC SƠN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 12:15:10","MA_BUUCUC_PHAT":"SSNDPC","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:26:58","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877484968431","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN PHÚ XUYÊN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:07:16","MA_BUUCUC_PHAT":"DIX","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:21:08","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877550392971","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:04:11","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877620514505","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HBH","TEN_QUANHUYEN_PHAT":"THÀNH PHỐ HÒA BÌNH","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:44:33","MA_BUUCUC_PHAT":"HBHBHB","MA_CHINHANH_PHAT":"PHO","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 16:20:23","UPDATED_AT":"25/09/2026 16:43:52"},{"MA_VANDON":"FED877546041693","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"VPC","TEN_QUANHUYEN_PHAT":"HUỴÊN TAM ĐẢO","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:06:42","MA_BUUCUC_PHAT":"HBVPTD","MA_CHINHANH_PHAT":"PHO","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877550393007","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:35:52","MA_BUUCUC_PHAT":"HBBGLG","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:04:39","UPDATED_AT":"25/09/2026 20:18:07"},{"MA_VANDON":"FED877679391900","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NDH","TEN_QUANHUYEN_PHAT":"HUYỆN TRỰC NINH","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:29:07","MA_BUUCUC_PHAT":"HBNDLH","MA_CHINHANH_PHAT":"NBH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:10:10","UPDATED_AT":"25/09/2026 20:18:07"},{"MA_VANDON":"FED877549539711","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"TBH","TEN_QUANHUYEN_PHAT":"HUYỆN THÁI THỤY","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 13:06:19","MA_BUUCUC_PHAT":"HBTBTT","MA_CHINHANH_PHAT":"HYN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 16:19:43","UPDATED_AT":"25/09/2026 16:43:52"},{"MA_VANDON":"FED877609511935","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NDH","TEN_QUANHUYEN_PHAT":"HUYỆN NGHĨA HƯNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:44:10","MA_BUUCUC_PHAT":"CHDBH","MA_CHINHANH_PHAT":"NBH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 16:20:23","UPDATED_AT":"25/09/2026 16:43:52"},{"MA_VANDON":"FED877679422866","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN ĐÔNG ANH","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:45:29","MA_BUUCUC_PHAT":"VHA","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:26:58","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877550076197","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"YBN","TEN_QUANHUYEN_PHAT":"HUYỆN TRẤN YÊN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:45:06","MA_BUUCUC_PHAT":"HBYBTY","MA_CHINHANH_PHAT":"LCI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 16:20:23","UPDATED_AT":"25/09/2026 16:43:52"},{"MA_VANDON":"FED877610723000","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN THƯỜNG TÍN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 12:14:56","MA_BUUCUC_PHAT":"VNBH","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:26:58","UPDATED_AT":"25/09/2026 19:39:53"},{"MA_VANDON":"FED877550392916","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:05:55","MA_BUUCUC_PHAT":"KEP","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877611927270","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN NGHĨA ĐÀN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 16:33:20","MA_BUUCUC_PHAT":"NGDN","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"DVCMBC","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 20:01:56","UPDATED_AT":"25/09/2026 20:18:07"},{"MA_VANDON":"FED877550392949","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:03:11","MA_BUUCUC_PHAT":"HBBGLG","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877612318275","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN THANH CHƯƠNG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:45:42","MA_BUUCUC_PHAT":"NANTHC","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 16:20:23","UPDATED_AT":"25/09/2026 16:43:52"},{"MA_VANDON":"FED877550392982","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"BGG","TEN_QUANHUYEN_PHAT":"HUYỆN LẠNG GIANG","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 17:06:12","MA_BUUCUC_PHAT":"HBBGLG","MA_CHINHANH_PHAT":"BNH","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:15:40","UPDATED_AT":"25/09/2026 19:23:20"},{"MA_VANDON":"FED877618667692","LOAI_DON":"LIEN_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"NAN","TEN_QUANHUYEN_PHAT":"HUYỆN NGHĨA ĐÀN","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:43:48","MA_BUUCUC_PHAT":"NGDN","MA_CHINHANH_PHAT":"NAN","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"TTKT5","MA_CHINHANH_HIENTAI":"LOG","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 16:20:23","UPDATED_AT":"25/09/2026 16:43:52"},{"MA_VANDON":"FED877622209338","LOAI_DON":"NOI_TINH","MIEN_NHAN":"MB","TINH_NHAN":"HNI","MIEN_PHAT":"MB","TINH_PHAT":"HNI","TEN_QUANHUYEN_PHAT":"HUYỆN ĐÔNG ANH","MA_BUUCUC_GOC":"NBI","MA_CHINHANH_GOC":"HNI","THOI_GIAN_NHAP_MAY":"25/09/2026 11:44:52","MA_BUUCUC_PHAT":"NNKE","MA_CHINHANH_PHAT":"HNI","MA_BUUCUC_PHAT_THUCTE":NaN,"MA_BUUCUC_HIENTAI":"HNVC","MA_CHINHANH_HIENTAI":"HNI","TRANGTHAI_HIENTAI":"400","THOIGIAN_TT_HIENTAI":"25/09/2026 19:26:58","UPDATED_AT":"25/09/2026 19:39:53"}];
+const EMBED_SRC = "baocaochitietbill_2026_09_25__1.xlsx";
+const STATUS_LIST = [{"c":100,"n":"Tiếp nhận đơn hàng từ đối tác","k":"FM","g":"","r":""},{"c":101,"n":"ViettelPost yêu cầu hủy đơn hàng","k":"FM","g":"","r":""},{"c":102,"n":"Đơn hàng chờ xử lý","k":"FM","g":"","r":""},{"c":103,"n":"Giao cho bưu cục","k":"FM","g":"","r":""},{"c":104,"n":"Giao cho Bưu tá đi nhận","k":"FM","g":"","r":""},{"c":105,"n":"Buu Tá đã nhận hàng","k":"FM","g":"","r":""},{"c":106,"n":"Đối tác yêu cầu lấy lại hàng","k":"FM","g":"","r":""},{"c":107,"n":"Đối tác yêu cầu hủy qua API","k":"FM","g":"","r":""},{"c":200,"n":"Nhận từ bưu tá - Bưu cục gốc","k":"FM","g":"","r":""},{"c":201,"n":"Hủy nhập phiếu gửi","k":"FM","g":"","r":""},{"c":202,"n":"Sửa phiếu gủi","k":"FM","g":"","r":""},{"c":300,"n":"Đóng bảng kê đi","k":"MM","g":"","r":""},{"c":301,"n":"Ðóng túi gói","k":"MM","g":"","r":""},{"c":302,"n":"Đóng Chuyến thư","k":"MM","g":"","r":""},{"c":303,"n":"Đóng tuyến xe","k":"MM","g":"","r":""},{"c":360,"n":"Bưu cục bàn giao","k":"MM","g":"","r":""},{"c":380,"n":"Lái xe bàn giao","k":"MM","g":"","r":""},{"c":400,"n":"Nhận bảng kê đến","k":"MM","g":"","r":""},{"c":401,"n":"Nhận Túi gói","k":"MM","g":"","r":""},{"c":402,"n":"Nhận chuyến thư","k":"MM","g":"","r":""},{"c":403,"n":"Nhận chuyến xe","k":"MM","g":"","r":""},{"c":460,"n":"Bưu cục nhận bàn giao","k":"MM","g":"","r":""},{"c":500,"n":"Giao bưu tá đi phát","k":"LM","g":"","r":""},{"c":501,"n":"Thành công - Phát thành công","k":"LM","g":"Được hiểu: Phát thành công","r":"Ghi nhận doanh thu"},{"c":502,"n":"Chuyển hoàn bưu cục gốc","k":"LM","g":"Được hiểu: Phát thành công","r":"Treo trên 3387"},{"c":503,"n":"Hủy - Theo yêu cầu khách hàng","k":"LM","g":"Được hiểu: Phát thành công","r":"Ghi nhận doanh thu"},{"c":504,"n":"Thành công - Chuyển trả người gửi","k":"LM","g":"Được hiểu: Phát thành công","r":"Ghi nhận doanh thu"},{"c":505,"n":"Tồn - Thông báo chuyển hoàn","k":"LM","g":"Được hiểu: Phát thành công","r":"Treo trên 3387"},{"c":506,"n":"Tồn - Khách hàng nghỉ, không có nhà","k":"LM","g":"Chưa thành công, cần phát tiếp","r":"Treo trên 3387"},{"c":507,"n":"Tồn - Khách hàng đến bưu cục nhận","k":"LM","g":"Được hiểu: Phát thành công","r":"Treo trên 3387"},{"c":508,"n":"Phát tiếp","k":"LM","g":"Chưa thành công, cần phát tiếp","r":"Treo trên 3387"},{"c":509,"n":"Chuyển tiếp bưu cục khác","k":"LM","g":"Chưa thành công, cần phát tiếp","r":"Treo trên 3387"},{"c":510,"n":"Hủy phân công phát","k":"LM","g":"Chưa thành công, cần phát tiếp","r":"Treo trên 3387"},{"c":516,"n":"Chờ đền bù","k":"LM","g":"","r":""},{"c":517,"n":"Đã đền bù","k":"LM","g":"","r":""},{"c":550,"n":"Đơn vị yêu cầu đơn vị phát tiếp","k":"LM","g":"","r":""}];
+// Bổ sung các mã có trên sơ đồ hành trình nhưng không có trong bảng
+[[108,"Gửi tại bưu cục/cửa hàng","FM"],[109,"Gửi tại bưu cục/cửa hàng","FM"],[480,"Xác nhận bàn giao","MM"],[515,"Tồn tại bưu cục phát","LM"]]
+  .forEach(([c,n,k])=>{ if(!STATUS_LIST.find(s=>s.c===c)) STATUS_LIST.push({c,n,k,g:"",r:"",extra:true}); });
+const STATUS = Object.fromEntries(STATUS_LIST.map(s=>[s.c,s]));
+const PROV = {HNI:"Hà Nội",HCM:"TP Hồ Chí Minh",BGG:"Bắc Giang",NAN:"Nghệ An",VPC:"Vĩnh Phúc",TBH:"Thái Bình",NDH:"Nam Định",HTH:"Hà Tĩnh",TNN:"Thái Nguyên",QNH:"Quảng Ninh",TGG:"Tiền Giang",THA:"Thanh Hóa",HNM:"Hà Nam",HBH:"Hòa Bình",YBN:"Yên Bái",HPG:"Hải Phòng",DNG:"Đà Nẵng",BNH:"Bắc Ninh",HDG:"Hải Dương",HYN:"Hưng Yên",NBH:"Ninh Bình",LCI:"Lào Cai",PTO:"Phú Thọ",LSN:"Lạng Sơn"};
+const STAGES = [{k:"FM",n:"Thu đơn hàng",cls:"fm"},{k:"MM",n:"Khai thác, vận chuyển",cls:"mm"},{k:"LM",n:"Phát hàng",cls:"lm"}];
+const CATS = [
+  {k:"ok",n:"Đúng hành trình"},{k:"slow",n:"Chậm hành trình"},{k:"bad",n:"Sai hành trình"},
+  {k:"done",n:"Đã kết thúc"},{k:"ret",n:"Hủy / chuyển hoàn"}];
+const CAT_COLOR = {ok:"var(--ok)",slow:"var(--slow)",bad:"var(--bad)",done:"var(--done)",ret:"var(--ret)"};
+const DONE=[501,503,504,517], RET=[101,106,107,201,502,505], LM_SLOW=[506,508,509,510];
+const cfg = {leave:8,dwellMM:12,dwellLM:24,slaNoi:24,slaLien:48,slaMien:72,hubs:"LOG"};
+
+let rows=[], srcName=EMBED_SRC, filter="all", q="";
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const fmtN=n=>n.toLocaleString("vi-VN");
+const pct=(a,b)=>b?(a/b*100).toFixed(1).replace(".",",")+"%":"0%";
+const pad=n=>String(n).padStart(2,"0");
+const fmtDT=d=>d?`${pad(d.getDate())}/${pad(d.getMonth()+1)} ${pad(d.getHours())}:${pad(d.getMinutes())}`:"—";
+const dayKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const dayLabel=k=>{const [y,m,d]=k.split("-");return `${d}/${m}/${y}`};
+const hrs=h=>h==null?"—":(h<0?"0":h<10?h.toFixed(1).replace(".",","):Math.round(h))+"h";
+
+function parseDT(v){
+  if(v==null||v==="") return null;
+  if(v instanceof Date) return isNaN(v)?null:v;
+  if(typeof v==="number"){ const d=new Date(Math.round((v-25569)*86400000)); return new Date(d.getTime()+d.getTimezoneOffset()*60000); }
+  const m=String(v).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/);
+  if(m) return new Date(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+  const d=new Date(v); return isNaN(d)?null:d;
+}
+const S=v=>v==null?"":String(v).trim();
+
+function normalize(raw){
+  return raw.filter(r=>S(r.MA_VANDON)).map(r=>{
+    const tn=S(r.TINH_NHAN).toUpperCase(), tp=S(r.TINH_PHAT).toUpperCase();
+    const mn=S(r.MIEN_NHAN), mp=S(r.MIEN_PHAT);
+    const noi = tn && tp && tn===tp;
+    return {
+      id:S(r.MA_VANDON), loaiFile:S(r.LOAI_DON), tn, tp, noi, lienMien: !noi && mn && mp && mn!==mp,
+      huyenPhat:S(r.TEN_QUANHUYEN_PHAT),
+      bcGoc:S(r.MA_BUUCUC_GOC), cnGoc:S(r.MA_CHINHANH_GOC), bcPhat:S(r.MA_BUUCUC_PHAT), cnPhat:S(r.MA_CHINHANH_PHAT),
+      bcPhatTT:S(r.MA_BUUCUC_PHAT_THUCTE), bcHT:S(r.MA_BUUCUC_HIENTAI), cnHT:S(r.MA_CHINHANH_HIENTAI),
+      tt:parseInt(S(r.TRANGTHAI_HIENTAI),10),
+      tNhap:parseDT(r.THOI_GIAN_NHAP_MAY), tTT:parseDT(r.THOIGIAN_TT_HIENTAI), tUpd:parseDT(r.UPDATED_AT)
+    };
+  });
+}
+
+function stageOf(code){ const s=STATUS[code]; if(s&&["FM","MM","LM"].includes(s.k)) return s.k; return code>=500?"LM":code>=300?"MM":"FM"; }
+
+function evaluate(o, ref){
+  const bad=[], slow=[]; const code=o.tt; const stg=stageOf(code);
+  const elapsed = o.tNhap ? (ref-o.tNhap)/36e5 : null;
+  const dwell = o.tTT ? (ref-o.tTT)/36e5 : null;
+  const proc = (o.tNhap&&o.tTT) ? (o.tTT-o.tNhap)/36e5 : null;
+  const base={stg,elapsed,dwell,proc};
+  if(isNaN(code)) return {...base,cat:"bad",why:"Không có mã trạng thái hiện tại"};
+  if(DONE.includes(code)) return {...base,cat:"done",why:STATUS[code]?.n||""};
+  if(RET.includes(code)) return {...base,cat:"ret",why:STATUS[code]?.n||""};
+  if(!STATUS[code]) bad.push(`Mã ${code} không có trong bảng mã trạng thái`);
+  if(o.tNhap&&o.tTT&&o.tTT<o.tNhap) bad.push("Thời gian trạng thái hiện tại sớm hơn thời gian nhập máy");
+  if(!o.tNhap&&code>=300) bad.push("Đã sang khâu "+stg+" nhưng chưa có thời gian nhập máy");
+  const hubs=cfg.hubs.split(/[,\s]+/).filter(Boolean).map(s=>s.toUpperCase());
+  if(stg==="MM" && o.cnHT){
+    const ok=[o.cnGoc,o.cnPhat,...hubs].filter(Boolean).map(s=>s.toUpperCase());
+    if(!ok.includes(o.cnHT.toUpperCase())) bad.push(`Đang ở chi nhánh ${o.cnHT}, ngoài tuyến ${o.cnGoc||"?"} → ${o.cnPhat||"?"}`);
+  }
+  if(stg==="LM" && code!==509 && o.bcHT){
+    const ok=[o.bcPhat,o.bcPhatTT].filter(Boolean);
+    if(ok.length && !ok.includes(o.bcHT)) bad.push(`Phát tại ${o.bcHT}, khác bưu cục phát ${o.bcPhat}`);
+  }
+  if(LM_SLOW.includes(code)) slow.push(STATUS[code]?.n||("Mã "+code));
+  if(stg==="FM" && elapsed!=null && elapsed>cfg.leave) slow.push(`Nhập máy ${hrs(elapsed)} chưa rời bưu cục gốc (chuẩn ${cfg.leave}h)`);
+  if(stg==="MM" && dwell!=null && dwell>cfg.dwellMM) slow.push(`Đứng ${hrs(dwell)} ở trạng thái ${code} (chuẩn ${cfg.dwellMM}h)`);
+  if(stg==="LM" && dwell!=null && dwell>cfg.dwellLM && !LM_SLOW.includes(code)) slow.push(`Đứng ${hrs(dwell)} ở trạng thái ${code} (chuẩn ${cfg.dwellLM}h)`);
+  const sla = o.noi?cfg.slaNoi:(o.lienMien?cfg.slaMien:cfg.slaLien);
+  if(stg!=="LM" && elapsed!=null && elapsed>sla) slow.push(`Sau ${hrs(elapsed)} chưa tới khâu phát (chuẩn ${o.noi?"nội tỉnh":o.lienMien?"liên miền":"liên tỉnh"} ${sla}h)`);
+  if(bad.length) return {...base,cat:"bad",why:[...bad,...slow].join("; ")};
+  if(slow.length) return {...base,cat:"slow",why:slow.join("; ")};
+  const where = stg==="MM" ? (hubs.includes(o.cnHT.toUpperCase())?`Tại trung chuyển ${o.bcHT}`:`Tại ${o.bcHT} (${o.cnHT})`) : `Tại ${o.bcHT||"—"}`;
+  return {...base,cat:"ok",why:where+(dwell!=null?`, ${hrs(dwell)} ở trạng thái hiện tại`:"")};
+}
+
+function toLocalInput(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`}
+function latestTs(){ let m=0; rows.forEach(o=>[o.tUpd,o.tTT,o.tNhap].forEach(d=>{if(d&&d>m)m=d})); return m?new Date(m):null; }
+function setDefaultRef(){
+  const now=new Date(), last=latestTs();
+  let ref=now, msg="";
+  if(last && now<last){ ref=last; msg=`Giờ trên máy (${fmtDT(now)}) sớm hơn dữ liệu mới nhất trong file, nên mốc đánh giá được đặt bằng lần cập nhật cuối ${fmtDT(last)}. Có thể đổi ở ô "Mốc giờ đánh giá".`; }
+  $("ref").value=toLocalInput(ref);
+  $("warn").textContent=msg; $("warn").style.display=msg?"block":"none";
+}
+
+function setupDays(){
+  const keys=[...new Set(rows.map(o=>o.tNhap?dayKey(o.tNhap):"none"))].sort();
+  const sel=$("day"); const prev=sel.value;
+  sel.innerHTML=keys.map(k=>`<option value="${k}">${k==="none"?"Chưa nhập máy":dayLabel(k)}</option>`).join("")+(keys.length>1?`<option value="all">Tất cả ngày</option>`:"");
+  sel.value = keys.includes(prev)?prev:(keys.filter(k=>k!=="none").pop()||keys[0]);
+}
+
+function render(){
+  const ref=new Date($("ref").value); const day=$("day").value;
+  const list=rows.filter(o=>day==="all"||(o.tNhap?dayKey(o.tNhap):"none")===day).map(o=>({...o,...evaluate(o,ref)}));
+  const N=list.length;
+  $("title").textContent = "Hành trình đơn " + (day==="all"?"toàn bộ file":day==="none"?"chưa nhập máy":"ngày "+dayLabel(day));
+  $("srcinfo").textContent = `Nguồn: ${srcName}, ${fmtN(rows.length)} đơn. Ngày tạo tính theo THOI_GIAN_NHAP_MAY (file không có cột thời gian tạo đơn riêng).`;
+
+  // Journey
+  const byStage={FM:0,MM:0,LM:0}, byCode={};
+  list.forEach(o=>{ byStage[o.stg]++; if(!isNaN(o.tt)) byCode[o.tt]=(byCode[o.tt]||0)+1; });
+  $("strip").innerHTML=STAGES.map(s=>`<div class="stage ${s.cls}"><div class="nm">${s.n} (${s.k})</div><div class="ct">${fmtN(byStage[s.k])}<small>${pct(byStage[s.k],N)}</small></div></div>`).join("");
+  $("nodes").innerHTML=STAGES.map(s=>{
+    const codes=STATUS_LIST.filter(x=>stageOf(x.c)===s.k).map(x=>x.c);
+    Object.keys(byCode).map(Number).forEach(c=>{ if(stageOf(c)===s.k && !codes.includes(c)) codes.push(c); });
+    const active=codes.filter(c=>byCode[c]).sort((a,b)=>a-b);
+    const html=active.map(c=>`<span class="node ${s.cls}" title="${esc(STATUS[c]?.n||"Mã ngoài bảng")}"><b>${c}</b>${esc(STATUS[c]?.n||"Mã ngoài bảng")} <span class="n">${byCode[c]}</span></span>`).join("");
+    return `<div class="nodecol">${html||`<span class="node ${s.cls} empty"><b>—</b>Chưa có đơn ở khâu này</span>`}</div>`;
+  }).join("");
+
+  // KPIs
+  const noi=list.filter(o=>o.noi).length, lien=N-noi, lm=list.filter(o=>o.lienMien).length;
+  const mismatch=list.filter(o=>o.loaiFile && ((o.noi&&o.loaiFile!=="NOI_TINH")||(!o.noi&&o.loaiFile==="NOI_TINH"))).length;
+  $("kTotal").textContent=fmtN(N);
+  $("kSplit").innerHTML=N?`<span style="width:${noi/N*100}%;background:var(--fm)"></span><span style="width:${lien/N*100}%;background:var(--lm)"></span>`:"";
+  $("kLegend").innerHTML=`<span><i style="background:var(--fm)"></i>Nội tỉnh ${pct(noi,N)}</span><span><i style="background:var(--lm)"></i>Liên tỉnh ${pct(lien,N)}</span>`+(mismatch?`<span>${mismatch} đơn lệch với cột LOAI_DON trong file</span>`:"");
+  $("kNoi").textContent=fmtN(noi); $("kNoiP").textContent=`${pct(noi,N)} tổng đơn, TINH_NHAN trùng TINH_PHAT`;
+  $("kLien").textContent=fmtN(lien); $("kLienP").textContent=`${pct(lien,N)} tổng đơn` + (lm?`, trong đó ${lm} liên miền`:"");
+  const provs=[...new Set(list.map(o=>o.tp))]; const recv=[...new Set(list.map(o=>o.tn))];
+  $("kProv").textContent=fmtN(provs.length); $("kProvP").textContent=`Gửi từ ${recv.map(p=>PROV[p]||p).join(", ")||"—"}`;
+
+  // Eval
+  const cc=Object.fromEntries(CATS.map(c=>[c.k,list.filter(o=>o.cat===c.k).length]));
+  $("eSplit").innerHTML=CATS.map(c=>cc[c.k]?`<span style="width:${cc[c.k]/N*100}%;background:${CAT_COLOR[c.k]}" title="${c.n}"></span>`:"").join("");
+  $("eRow").innerHTML=CATS.map(c=>`<div class="ev" style="border-color:${CAT_COLOR[c.k]}"><div class="l note">${c.n}</div><div class="v"><b>${fmtN(cc[c.k])}</b></div><div class="pct">${pct(cc[c.k],N)}</div></div>`).join("");
+
+  // Province table
+  const pm={};
+  list.forEach(o=>{ const p=pm[o.tp]||(pm[o.tp]={p:o.tp,n:0,noi:0,lien:0,ok:0,slow:0,bad:0,done:0,ret:0,st:{}}); p.n++; o.noi?p.noi++:p.lien++; p[o.cat]++; p.st[o.stg]=(p.st[o.stg]||0)+1; });
+  const pr=Object.values(pm).sort((a,b)=>b.n-a.n||a.p.localeCompare(b.p));
+  $("tProv").innerHTML = `<thead><tr><th>Tỉnh phát</th><th class="num">Số đơn</th><th class="num">Tỷ lệ</th><th>Loại</th><th>Đánh giá</th><th class="num">Đúng HT</th></tr></thead><tbody>`+
+    pr.map(p=>`<tr><td><b>${esc(p.p)}</b> <span class="note">${esc(PROV[p.p]||"")}</span></td><td class="num"><b>${p.n}</b></td><td class="num">${pct(p.n,N)}</td>
+    <td>${p.noi?`<span class="tag fm">Nội tỉnh ${p.noi}</span> `:""}${p.lien?`<span class="tag lm">Liên tỉnh ${p.lien}</span>`:""}</td>
+    <td><div class="bar">${CATS.map(c=>p[c.k]?`<span style="width:${p[c.k]/p.n*100}%;background:${CAT_COLOR[c.k]}" title="${c.n}: ${p[c.k]}"></span>`:"").join("")}</div></td>
+    <td class="num">${pct(p.ok+p.done,p.n)}</td></tr>`).join("")+
+    `</tbody><tfoot><tr><td>Tổng</td><td class="num">${N}</td><td class="num">${N?"100%":"0%"}</td><td><span class="tag fm">${noi}</span> <span class="tag lm">${lien}</span></td><td></td><td class="num">${pct(cc.ok+cc.done,N)}</td></tr></tfoot>`;
+
+  // Status table
+  const codes=Object.keys(byCode).map(Number).sort((a,b)=>a-b);
+  $("tStatus").innerHTML = `<thead><tr><th>Mã</th><th>Trạng thái</th><th>Khâu</th><th class="num">Số đơn</th><th class="num">Tỷ lệ</th><th>Nhóm theo bảng mã</th></tr></thead><tbody>`+
+    (codes.length?codes.map(c=>{const s=STATUS[c]; const k=stageOf(c).toLowerCase();
+      return `<tr><td class="mono">${c}</td><td>${esc(s?.n||"Không có trong bảng mã")}</td><td><span class="tag ${k}">${k.toUpperCase()}</span></td><td class="num"><b>${byCode[c]}</b></td><td class="num">${pct(byCode[c],N)}</td><td class="reason">${esc([s?.g,s?.r].filter(Boolean).join(", ")||"—")}</td></tr>`}).join("")
+     :`<tr><td colspan="6" class="empty-state">Không có đơn trong ngày đã chọn</td></tr>`)+
+    `</tbody><tfoot><tr><td colspan="3">Tổng</td><td class="num">${N}</td><td class="num">${N?"100%":"0%"}</td><td></td></tr></tfoot>`;
+
+  // Histograms
+  const B=[[0,4,"<4h"],[4,8,"4–8h"],[8,12,"8–12h"],[12,24,"12–24h"],[24,48,"24–48h"],[48,1e9,">48h"]];
+  const hist=(el,lab,vals,color)=>{const cnt=B.map(([a,b])=>vals.filter(v=>v>=a&&v<b).length); const mx=Math.max(1,...cnt);
+    $(el).innerHTML=cnt.map(c=>`<div class="hcol"><span class="hv">${c||""}</span><div class="hb" style="height:${c/mx*100}%;background:${color}"></div></div>`).join("");
+    $(lab).innerHTML=B.map(b=>`<span>${b[2]}</span>`).join("");};
+  const avg=a=>a.length?a.reduce((x,y)=>x+y,0)/a.length:null; const max=a=>a.length?Math.max(...a):null;
+  const ev=list.map(o=>o.elapsed).filter(v=>v!=null).map(v=>Math.max(0,v));
+  const dv=list.filter(o=>o.cat!=="done"&&o.cat!=="ret").map(o=>o.dwell).filter(v=>v!=null).map(v=>Math.max(0,v));
+  const pv=list.map(o=>o.proc).filter(v=>v!=null&&v>=0);
+  hist("h1","h1l",ev,"var(--fm)"); hist("h2","h2l",dv,"var(--mm)");
+  $("s1").innerHTML=`<div><b>${hrs(avg(ev))}</b><span>Trung bình đã qua</span></div><div><b>${hrs(avg(pv))}</b><span>TB nhập máy → trạng thái hiện tại</span></div><div><b>${hrs(max(ev))}</b><span>Đơn lâu nhất</span></div>`;
+  $("s2").innerHTML=`<div><b>${hrs(avg(dv))}</b><span>Trung bình đứng</span></div><div><b>${dv.filter(v=>v>cfg.dwellMM).length}</b><span>Đơn đứng quá ${cfg.dwellMM}h</span></div><div><b>${hrs(max(dv))}</b><span>Đứng lâu nhất</span></div>`;
+
+  // Orders
+  $("chips").innerHTML=[{k:"all",n:"Tất cả",c:N},...CATS.map(c=>({...c,c:cc[c.k]}))].map(c=>`<button type="button" class="chip" data-f="${c.k}" aria-pressed="${filter===c.k}">${c.n} ${c.c}</button>`).join("")+
+    `<input class="search" id="q" type="search" placeholder="Tìm mã vận đơn, tỉnh, bưu cục" value="${esc(q)}">`;
+  const qq=q.trim().toUpperCase();
+  const order={bad:0,slow:1,ret:2,ok:3,done:4};
+  const shown=list.filter(o=>(filter==="all"||o.cat===filter)&&(!qq||[o.id,o.tp,o.tn,o.bcHT,o.cnHT,o.bcPhat,String(o.tt)].some(s=>s.toUpperCase().includes(qq))))
+    .sort((a,b)=>order[a.cat]-order[b.cat]||(b.dwell||0)-(a.dwell||0));
+  const catName=Object.fromEntries(CATS.map(c=>[c.k,c.n]));
+  $("tOrders").innerHTML=`<thead><tr><th>Mã vận đơn</th><th>Loại</th><th>Nhận → phát</th><th>Nhập máy</th><th>TT hiện tại</th><th>Trạng thái</th><th>Bưu cục hiện tại</th><th class="num">Đã qua</th><th class="num">Đứng</th><th>Đánh giá</th><th>Lý do</th></tr></thead><tbody>`+
+    (shown.length?shown.map(o=>`<tr><td class="mono">${esc(o.id)}</td><td><span class="tag ${o.noi?"fm":"lm"}">${o.noi?"Nội tỉnh":o.lienMien?"Liên miền":"Liên tỉnh"}</span></td>
+      <td>${esc(o.tn)} → <b>${esc(o.tp)}</b></td><td class="mono">${fmtDT(o.tNhap)}</td><td class="mono">${fmtDT(o.tTT)}</td>
+      <td><span class="tag ${o.stg.toLowerCase()}">${isNaN(o.tt)?"—":o.tt}</span> <span class="note">${esc(STATUS[o.tt]?.n||"")}</span></td>
+      <td>${esc(o.bcHT)} <span class="note">${esc(o.cnHT)}</span></td><td class="num">${hrs(o.elapsed)}</td><td class="num">${hrs(o.dwell)}</td>
+      <td><span class="pill c-${o.cat}">${catName[o.cat]}</span></td><td class="reason">${esc(o.why)}</td></tr>`).join("")
+     :`<tr><td colspan="11" class="empty-state">Không có đơn khớp bộ lọc. Chọn "Tất cả" hoặc xóa ô tìm kiếm.</td></tr>`)+`</tbody>`;
+}
+
+// Events
+document.addEventListener("click",e=>{const b=e.target.closest(".chip"); if(b){filter=b.dataset.f; render();}});
+document.addEventListener("input",e=>{ if(e.target.id==="q"){ q=e.target.value; const pos=e.target.selectionStart; render(); const el=$("q"); el.focus(); el.setSelectionRange(pos,pos);} });
+$("day").addEventListener("change",render);
+$("ref").addEventListener("change",render);
+$("nowBtn").addEventListener("click",()=>{$("ref").value=toLocalInput(new Date()); $("warn").style.display="none"; render();});
+document.querySelectorAll("[data-k]").forEach(inp=>{ inp.value=cfg[inp.dataset.k];
+  inp.addEventListener("change",()=>{ const k=inp.dataset.k; cfg[k]= k==="hubs"?inp.value:Math.max(1,+inp.value||cfg[k]); render(); }); });
+$("file").addEventListener("change",async e=>{
+  const f=e.target.files[0]; if(!f) return;
+  try{
+    if(typeof XLSX==="undefined") throw new Error("Không tải được thư viện đọc Excel. Kiểm tra kết nối mạng rồi thử lại.");
+    const wb=XLSX.read(await f.arrayBuffer(),{type:"array",cellDates:true});
+    const ws=wb.Sheets[wb.SheetNames[0]];
+    const raw=XLSX.utils.sheet_to_json(ws,{defval:null,raw:true});
+    if(!raw.length || !("MA_VANDON" in raw[0]) || !("TINH_PHAT" in raw[0])) throw new Error("File thiếu cột MA_VANDON hoặc TINH_PHAT. Hãy dùng đúng mẫu báo cáo chi tiết bill.");
+    rows=normalize(raw); srcName=f.name; filter="all"; q="";
+    setupDays(); setDefaultRef(); render();
+  }catch(err){ $("warn").textContent=err.message; $("warn").style.display="block"; }
+  e.target.value="";
+});
+
+// Nhúng trong app duanfedex (giao diện sáng): theo nền và theme sáng của trang cha
+if(window.self!==window.top){ document.body.classList.add("embedded"); document.documentElement.setAttribute("data-theme","light"); }
+rows=normalize(EMBED_DATA); setupDays(); setDefaultRef(); render();
+</script>
+</body>
+</html>
