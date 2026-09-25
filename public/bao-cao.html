@@ -261,7 +261,7 @@ const CAT_COLOR = {ok:"var(--ok)",slow:"var(--slow)",bad:"var(--bad)",done:"var(
 const DONE=[501,503,504,517], RET=[101,106,107,201,502,505], LM_SLOW=[506,508,509,510];
 const cfg = {leave:8,dwellMM:12,dwellLM:24,slaNoi:24,slaLien:48,slaMien:72,hubs:"LOG"};
 
-let rows=[], srcName=EMBED_SRC, filter="all", q="";
+let rows=[], srcName=EMBED_SRC, filter="all", q="", view={list:[],shown:[],day:"",ref:null};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const fmtN=n=>n.toLocaleString("vi-VN");
@@ -419,12 +419,15 @@ function render(){
 
   // Orders
   $("chips").innerHTML=[{k:"all",n:"Tất cả",c:N},...CATS.map(c=>({...c,c:cc[c.k]}))].map(c=>`<button type="button" class="chip" data-f="${c.k}" aria-pressed="${filter===c.k}">${c.n} ${c.c}</button>`).join("")+
-    `<input class="search" id="q" type="search" placeholder="Tìm mã vận đơn, tỉnh, bưu cục" value="${esc(q)}">`;
+    `<input class="search" id="q" type="search" placeholder="Tìm mã vận đơn, tỉnh, bưu cục" value="${esc(q)}">`+
+    `<button type="button" id="xlsxShown" title="Xuất danh sách đang hiển thị (theo bộ lọc và ô tìm kiếm)">Xuất Excel</button>`+
+    `<button type="button" id="xlsxByCat" title="Mỗi trạng thái đánh giá một sheet, kèm sheet Tất cả">Xuất theo trạng thái</button>`;
   const qq=q.trim().toUpperCase();
   const order={bad:0,slow:1,ret:2,ok:3,done:4};
   const shown=list.filter(o=>(filter==="all"||o.cat===filter)&&(!qq||[o.id,o.tp,o.tn,o.bcHT,o.cnHT,o.bcPhat,String(o.tt)].some(s=>s.toUpperCase().includes(qq))))
     .sort((a,b)=>order[a.cat]-order[b.cat]||(b.dwell||0)-(a.dwell||0));
   const catName=Object.fromEntries(CATS.map(c=>[c.k,c.n]));
+  view={list,shown,day,ref};
   $("tOrders").innerHTML=`<thead><tr><th>Mã vận đơn</th><th>Loại</th><th>Nhận → phát</th><th>Nhập máy</th><th>TT hiện tại</th><th>Trạng thái</th><th>Bưu cục hiện tại</th><th class="num">Đã qua</th><th class="num">Đứng</th><th>Đánh giá</th><th>Lý do</th></tr></thead><tbody>`+
     (shown.length?shown.map(o=>`<tr><td class="mono">${esc(o.id)}</td><td><span class="tag ${o.noi?"fm":"lm"}">${o.noi?"Nội tỉnh":o.lienMien?"Liên miền":"Liên tỉnh"}</span></td>
       <td>${esc(o.tn)} → <b>${esc(o.tp)}</b></td><td class="mono">${fmtDT(o.tNhap)}</td><td class="mono">${fmtDT(o.tTT)}</td>
@@ -436,6 +439,50 @@ function render(){
 
 // Events
 document.addEventListener("click",e=>{const b=e.target.closest(".chip"); if(b){filter=b.dataset.f; render();}});
+
+// Xuất Excel: danh sách đang hiển thị, hoặc mỗi trạng thái đánh giá một sheet
+const CAT_ORDER={bad:0,slow:1,ret:2,ok:3,done:4};
+const xlsxDT=d=>d?`${pad(d.getDate())}/${pad(d.getMonth()+1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`:"";
+const xlsxH=h=>h==null?"":Math.round(Math.max(0,h)*10)/10;
+function exportRows(list){
+  const catName=Object.fromEntries(CATS.map(c=>[c.k,c.n]));
+  return list.map((o,i)=>({
+    "STT":i+1,"Mã vận đơn":o.id,"Loại đơn":o.noi?"Nội tỉnh":o.lienMien?"Liên miền":"Liên tỉnh",
+    "Tỉnh nhận":o.tn,"Tỉnh phát":o.tp,"Quận/huyện phát":o.huyenPhat,
+    "Bưu cục gốc":o.bcGoc,"Chi nhánh gốc":o.cnGoc,"Bưu cục phát":o.bcPhat,"Chi nhánh phát":o.cnPhat,
+    "Thời gian nhập máy":xlsxDT(o.tNhap),"Thời gian TT hiện tại":xlsxDT(o.tTT),
+    "Mã trạng thái":isNaN(o.tt)?"":o.tt,"Tên trạng thái":STATUS[o.tt]?.n||"","Khâu":o.stg,
+    "Bưu cục hiện tại":o.bcHT,"Chi nhánh hiện tại":o.cnHT,
+    "Đã qua (giờ)":xlsxH(o.elapsed),"Đứng ở TT hiện tại (giờ)":xlsxH(o.dwell),
+    "Đánh giá":catName[o.cat],"Lý do":o.why
+  }));
+}
+function makeSheet(list){
+  const ws=XLSX.utils.json_to_sheet(exportRows(list),{header:["STT","Mã vận đơn","Loại đơn","Tỉnh nhận","Tỉnh phát","Quận/huyện phát","Bưu cục gốc","Chi nhánh gốc","Bưu cục phát","Chi nhánh phát","Thời gian nhập máy","Thời gian TT hiện tại","Mã trạng thái","Tên trạng thái","Khâu","Bưu cục hiện tại","Chi nhánh hiện tại","Đã qua (giờ)","Đứng ở TT hiện tại (giờ)","Đánh giá","Lý do"]});
+  ws["!cols"]=[5,20,10,9,9,22,11,11,11,11,19,19,11,32,6,14,13,10,12,16,60].map(w=>({wch:w}));
+  ws["!autofilter"]={ref:ws["!ref"]};
+  return ws;
+}
+function fileStamp(){ const d=view.day==="all"?"tat-ca-ngay":view.day==="none"?"chua-nhap-may":view.day; return `hanh-trinh-don_${d}`; }
+function exportXlsx(byCat){
+  try{
+    if(typeof XLSX==="undefined") throw new Error("Không tải được thư viện Excel. Kiểm tra kết nối mạng rồi thử lại.");
+    const wb=XLSX.utils.book_new();
+    if(byCat){
+      const all=[...view.list].sort((a,b)=>CAT_ORDER[a.cat]-CAT_ORDER[b.cat]||(b.dwell||0)-(a.dwell||0));
+      XLSX.utils.book_append_sheet(wb,makeSheet(all),"Tất cả");
+      CATS.forEach(c=>{ const part=all.filter(o=>o.cat===c.k); if(part.length) XLSX.utils.book_append_sheet(wb,makeSheet(part),c.n.replace(/[\\\/?*\[\]:]/g,"-").slice(0,31)); });
+      XLSX.writeFile(wb,`${fileStamp()}_theo-trang-thai.xlsx`);
+    }else{
+      if(!view.shown.length) throw new Error("Không có đơn nào trong danh sách đang hiển thị để xuất.");
+      const name=filter==="all"?"Tất cả":CATS.find(c=>c.k===filter).n;
+      XLSX.utils.book_append_sheet(wb,makeSheet(view.shown),name.replace(/[\\\/?*\[\]:]/g,"-").slice(0,31));
+      const slug=filter==="all"?"tat-ca":{ok:"dung-hanh-trinh",slow:"cham-hanh-trinh",bad:"sai-hanh-trinh",done:"da-ket-thuc",ret:"huy-chuyen-hoan"}[filter];
+      XLSX.writeFile(wb,`${fileStamp()}_${slug}.xlsx`);
+    }
+  }catch(err){ $("warn").textContent=err.message; $("warn").style.display="block"; }
+}
+document.addEventListener("click",e=>{ if(e.target.id==="xlsxShown") exportXlsx(false); else if(e.target.id==="xlsxByCat") exportXlsx(true); });
 document.addEventListener("input",e=>{ if(e.target.id==="q"){ q=e.target.value; const pos=e.target.selectionStart; render(); const el=$("q"); el.focus(); el.setSelectionRange(pos,pos);} });
 $("day").addEventListener("change",render);
 $("ref").addEventListener("change",render);
