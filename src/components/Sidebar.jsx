@@ -1,5 +1,5 @@
 import React from "react";
-import { LayoutGrid, ClipboardList, Users, CalendarDays, Truck } from "lucide-react";
+import { LayoutGrid, ClipboardList, Users, CalendarDays, Truck, PackageCheck } from "lucide-react";
 import { COLORS } from "../theme";
 import { GENERIC_MODULES, GENERIC_MODULE_ORDER } from "../modules";
 import { FedExMark, ViettelPostMark } from "./BrandLogos";
@@ -15,6 +15,7 @@ const NAV_ITEMS = [
   { key: "link", label: GENERIC_MODULES.link.label, icon: GENERIC_MODULES.link.icon },
   { key: "baocao", label: GENERIC_MODULES.baocao.label, icon: GENERIC_MODULES.baocao.icon },
   { key: "hanhtrinh", label: "Hành trình đơn", icon: Truck },
+  { key: "pickup", label: "Pickup Dashboard", icon: PackageCheck },
   { key: "feedback", label: GENERIC_MODULES.feedback.label, icon: GENERIC_MODULES.feedback.icon },
   { key: "chat", label: GENERIC_MODULES.chat.label, icon: GENERIC_MODULES.chat.icon },
   { key: "calendar", label: "Calendar", icon: CalendarDays },

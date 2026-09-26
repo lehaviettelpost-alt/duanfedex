@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 
-// Báo cáo hành trình đơn là trang HTML độc lập (public/bao-cao.html: đọc file bill Excel, đánh giá
-// hành trình theo bảng mã trạng thái MVĐ). Nhúng cùng origin nên đo được chiều cao nội dung và
+// Các báo cáo/dashboard là trang HTML độc lập trong public/ (bao-cao.html: hành trình đơn,
+// pickup-dashboard.html: tình trạng lấy hàng). Nhúng cùng origin nên đo được chiều cao nội dung và
 // giãn khung theo báo cáo, không có thanh cuộn lồng bên trong.
-export default function HanhTrinhDonPage() {
+export default function EmbeddedReportPage({ src, title }) {
   const frameRef = useRef(null);
   const [height, setHeight] = useState(900);
 
@@ -35,8 +35,8 @@ export default function HanhTrinhDonPage() {
   return (
     <iframe
       ref={frameRef}
-      src="/bao-cao.html"
-      title="Báo cáo hành trình đơn"
+      src={src}
+      title={title}
       style={{ display: "block", width: "100%", height, border: "none", background: "transparent", colorScheme: "light" }}
     />
   );

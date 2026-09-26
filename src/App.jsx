@@ -15,7 +15,13 @@ import VanBanPage from "./components/VanBanPage";
 import SoGiaoBanPage from "./components/SoGiaoBanPage";
 import LinkManagerPage from "./components/LinkManagerPage";
 import ChatPage from "./components/ChatPage";
-import HanhTrinhDonPage from "./components/HanhTrinhDonPage";
+import EmbeddedReportPage from "./components/EmbeddedReportPage";
+
+// Trang báo cáo HTML độc lập (public/) hiển thị trong khung chính, rộng hơn các module khác
+const EMBEDDED_REPORTS = {
+  hanhtrinh: { src: "/bao-cao.html", title: "Báo cáo hành trình đơn" },
+  pickup: { src: "/pickup-dashboard.html", title: "Pickup Status Dashboard" },
+};
 import { BrandBadges } from "./components/BrandLogos";
 
 const USERS_KEY = "duanfedex-users";
@@ -271,8 +277,9 @@ export default function App() {
         onRefresh={() => refreshModule("chat")}
       />
     );
-  } else if (activeNav === "hanhtrinh") {
-    page = <HanhTrinhDonPage />;
+  } else if (EMBEDDED_REPORTS[activeNav]) {
+    const report = EMBEDDED_REPORTS[activeNav];
+    page = <EmbeddedReportPage key={activeNav} src={report.src} title={report.title} />;
   } else if (GENERIC_MODULES[activeNav]) {
     const key = activeNav;
     page = (
@@ -295,7 +302,7 @@ export default function App() {
         <Sidebar active={activeNav} onNavigate={setActiveNav} canAccessPersonnel={canManageTasks} />
 
         <div className="tb-content">
-          <div style={{ maxWidth: activeNav === "hanhtrinh" ? 1320 : 1100, margin: "0 auto" }}>
+          <div style={{ maxWidth: EMBEDDED_REPORTS[activeNav] ? 1320 : 1100, margin: "0 auto" }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 10, marginBottom: 18 }}>
               <span />
               <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", justifyContent: "center" }}>
