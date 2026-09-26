@@ -203,6 +203,17 @@
   .no-result{padding:26px;text-align:center;color:var(--sub);font-size:13px;}
 
   .foot-note{font-size:11.5px;color:var(--sub);text-align:center;padding-top:6px;}
+
+  /* ---------- NẠP DỮ LIỆU ---------- */
+  .load-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;}
+  .load-btn{display:inline-flex;align-items:center;gap:7px;font:inherit;font-size:13px;font-weight:700;border-radius:10px;padding:8px 14px;cursor:pointer;border:1px solid rgba(255,255,255,.28);}
+  .load-btn.primary{background:#fb923c;border-color:#fb923c;color:#0b1220;}
+  .load-btn.ghost{background:transparent;color:#c7d3ea;}
+  .load-btn:focus-visible,.load-btn:focus-within{outline:2px solid #fff;outline-offset:2px;}
+  .load-btn.busy{opacity:.6;pointer-events:none;}
+  .load-hint{font-size:11.5px;color:#8fa0c0;margin-top:8px;}
+  .load-msg{background:var(--blue-bg);color:var(--ink);border-radius:12px;padding:10px 14px;font-size:13px;}
+  .load-msg.err{background:var(--red-bg);color:var(--red);font-weight:600;}
 </style>
 </head>
 <body>
@@ -213,7 +224,15 @@
     <div class="hero-left">
       <div class="hero-eyebrow" id="eyebrow">PICKUP STATUS DASHBOARD</div>
       <div class="hero-title">Theo dõi tình trạng lấy hàng trong ngày</div>
-      <div class="hero-meta">Cập nhật: <b id="metaDate">—</b> &nbsp;|&nbsp; Nguồn: <b>RawData Ngày N</b></div>
+      <div class="hero-meta">Cập nhật: <b id="metaDate">—</b> &nbsp;|&nbsp; Nguồn: <b id="metaSrc">RawData Ngày N</b></div>
+      <div class="load-row">
+        <label class="load-btn primary" id="rawLabel">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          Nạp file RawData<input type="file" id="rawFile" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+        </label>
+        <button type="button" class="load-btn ghost" id="resetData" hidden>Về dữ liệu mặc định</button>
+      </div>
+      <div class="load-hint">Cột dùng: Disp Loc, Account, Customer, Total Pkgs, Total Weight, Status, Scan Time, Asg Route, Region</div>
     </div>
     <div class="hero-mid">
       <div class="hero-num kien"><div class="lbl">TỔNG KIỆN</div><div class="val" id="heroPkgs">0</div></div>
@@ -226,6 +245,8 @@
       <div class="sub" id="heroRateSub">trên 0 đơn đã ghi nhận trạng thái</div>
     </div>
   </div>
+
+  <div class="load-msg" id="loadMsg" role="status" hidden></div>
 
   <!-- STAT CARDS -->
   <div class="stats">
@@ -242,7 +263,7 @@
     <div class="panel">
       <div class="panel-head">
         <div class="panel-title">Tiến độ xử lý theo giờ</div>
-        <div class="panel-sub">Lũy kế theo giờ scan</div>
+        <div class="panel-sub" id="chartSub">Lũy kế theo giờ scan</div>
       </div>
       <div id="chartArea"></div>
     </div>
@@ -321,141 +342,280 @@
     </div>
   </div>
 
-  <div class="foot-note">Dashboard dựng từ sheet RawData Ngày N — dữ liệu thô, chưa có cột Scan Time nên biểu đồ tiến độ theo giờ chưa có số liệu.</div>
+  <div class="foot-note" id="footNote">Dashboard dựng từ sheet RawData Ngày N — dữ liệu thô, chưa có cột Scan Time nên biểu đồ tiến độ theo giờ chưa có số liệu.</div>
 </div>
 
 <script id="agg-data" type="application/json">
 {"total_rows":340,"total_pkgs":1662,"total_weight":12212,"completed":16,"active":304,"active_upd":6,"exception":2,"cancelled":12,"kho":{"HANA":{"Active":61,"Cancelled":5,"Active-Updated":1,"Exception":1,"Completed":1},"HPHA":{"Active":243,"Cancelled":7,"Completed":15,"Active-Updated":5,"Exception":1}},"region":{"Tay Ho":{"Active":10,"Cancelled":1},"ALS":{"Active":32,"Cancelled":1,"Exception":1,"Completed":1},"Bac Ninh":{"Active":69,"Active-Updated":1},"Hai Phong":{"Active":60,"Active-Updated":2},"Unassigned":{"Cancelled":6,"Active":4},"Nam Dinh":{"Cancelled":3,"Completed":5,"Active":56},"Long Bien":{"Active":8},"Hung Yen":{"Active":22,"Active-Updated":2,"Completed":3},"Tu Liem":{"Active":21,"Active-Updated":1},"Thanh Xuan":{"Active":3},"Hai Duong":{"Active":19,"Completed":7,"Cancelled":1,"Exception":1}},"accounts":[{"account":786297559,"customer":"EIKODO VIETNAM CO., LTD","region":"Tay Ho","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":730461496,"customer":"DONGWHA VIETNAM","region":"ALS","pkgs":2,"weight":64,"done_pkgs":0,"done_weight":0},{"account":779929353,"customer":"FUYU PRECISION COMPONENT CO.,","region":"Bac Ninh","pkgs":7,"weight":19,"done_pkgs":0,"done_weight":0},{"account":990199892,"customer":"BOLTUN INTERNATIONAL COMPANY L","region":"Hai Phong","pkgs":8,"weight":67,"done_pkgs":0,"done_weight":0},{"account":232377860,"customer":"SUNRISE FOODSTUFF","region":"Tay Ho","pkgs":1,"weight":2,"done_pkgs":0,"done_weight":0},{"account":795385355,"customer":"BEDRAVIETNAMALLOYMATERIALCO.,","region":"Tay Ho","pkgs":2,"weight":2,"done_pkgs":0,"done_weight":0},{"account":929477294,"customer":"COHERENT SERVICES VIETNAM, LLC","region":"Bac Ninh","pkgs":2,"weight":12,"done_pkgs":0,"done_weight":0},{"account":952500007,"customer":"VIETNAM MARITIME COMMERCIAL JO","region":"Tay Ho","pkgs":2,"weight":15,"done_pkgs":0,"done_weight":0},{"account":118039297,"customer":"SUMITOMO HEAVY INDUSTRIES VN","region":"Unassigned","pkgs":1,"weight":113,"done_pkgs":1,"done_weight":113},{"account":203276535,"customer":"XIN YAO VIET NAM CO LTD","region":"Unassigned","pkgs":3,"weight":23,"done_pkgs":3,"done_weight":23},{"account":206910355,"customer":"GOLDEN VICTORY NAM TRUC","region":"Nam Dinh","pkgs":108,"weight":864,"done_pkgs":75,"done_weight":625},{"account":210371553,"customer":"AVANCE LEATHER AND ACCESSORIES","region":"Nam Dinh","pkgs":17,"weight":232,"done_pkgs":14,"done_weight":214},{"account":208549007,"customer":"LE TUAN ANH","region":"Long Bien","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":203277873,"customer":"FUHONG PRECISION COMPONENT","region":"Bac Ninh","pkgs":1,"weight":17,"done_pkgs":0,"done_weight":0},{"account":267749854,"customer":"ANNEX ELECTRONICS CO., LTD","region":"Hung Yen","pkgs":1,"weight":4,"done_pkgs":0,"done_weight":0},{"account":204944567,"customer":"JING DONG","region":"Tay Ho","pkgs":20,"weight":57,"done_pkgs":0,"done_weight":0},{"account":213594195,"customer":"MANUFACTURING JOINT STOCK COMP","region":"Hung Yen","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":812957325,"customer":"CAPELLA HANOI","region":"Tay Ho","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":750278086,"customer":"FULGENT SUN FOOTWEAR","region":"Hung Yen","pkgs":272,"weight":1448,"done_pkgs":269,"done_weight":1438},{"account":620960110,"customer":"THI MAI LOAN VU","region":"Tay Ho","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":680820333,"customer":"JHAO YANG RUBBER CO., LTD","region":"Bac Ninh","pkgs":7,"weight":20,"done_pkgs":0,"done_weight":0},{"account":361526058,"customer":"DREAM PLASTIC CO.,LTD","region":"Nam Dinh","pkgs":2,"weight":2,"done_pkgs":0,"done_weight":0},{"account":708006890,"customer":"OGK HANOI","region":"ALS","pkgs":2,"weight":15,"done_pkgs":0,"done_weight":0},{"account":773841250,"customer":"USI VIETNAM CO,. LTD","region":"Hai Phong","pkgs":64,"weight":259,"done_pkgs":0,"done_weight":0},{"account":866115966,"customer":"LOGASIA SCM CO., LTD","region":"Tu Liem","pkgs":20,"weight":50,"done_pkgs":0,"done_weight":0},{"account":205040639,"customer":"W&B TECHNOLOGY (VIET NAM)","region":"Bac Ninh","pkgs":7,"weight":22,"done_pkgs":0,"done_weight":0},{"account":661865725,"customer":"EMSD.,JSC","region":"Tu Liem","pkgs":1,"weight":97,"done_pkgs":1,"done_weight":97},{"account":204153153,"customer":"MYSGROUP(VN)PACKAGING TECH CO.","region":"Nam Dinh","pkgs":2,"weight":15,"done_pkgs":0,"done_weight":0},{"account":219342175,"customer":"GIFT VALUE","region":"Thanh Xuan","pkgs":11,"weight":21,"done_pkgs":0,"done_weight":0},{"account":680516235,"customer":"TEXON SEMICONDUCTOR TECHNOLOGI","region":"Bac Ninh","pkgs":4,"weight":28,"done_pkgs":0,"done_weight":0},{"account":770841615,"customer":"CONG TY TNHH CONG NGHE GDS VIN","region":"ALS","pkgs":1,"weight":21,"done_pkgs":0,"done_weight":0},{"account":200610206,"customer":"GOERTEK ELECTRONICS VIETNAM CO","region":"Bac Ninh","pkgs":2,"weight":14,"done_pkgs":0,"done_weight":0},{"account":206960215,"customer":"JOHNSON SLP","region":"Bac Ninh","pkgs":3,"weight":8,"done_pkgs":0,"done_weight":0},{"account":909437873,"customer":"HOANG MINH INVESTMENT","region":"Tu Liem","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":258303395,"customer":"LUXSHARE - ICT (VAN TRUNG) D3","region":"Bac Ninh","pkgs":3,"weight":3,"done_pkgs":0,"done_weight":0},{"account":506363845,"customer":"ENDO VIETNAM CO.,LTD","region":"ALS","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":115835998,"customer":"ASAHI DENSO VIETNAM CO., LTD","region":"ALS","pkgs":3,"weight":3,"done_pkgs":1,"done_weight":1},{"account":369897144,"customer":"ITECOM., JSC","region":"Thanh Xuan","pkgs":1,"weight":7,"done_pkgs":0,"done_weight":0},{"account":203549418,"customer":"WISTRON TECHNOLOGY (VIETNAM)","region":"Nam Dinh","pkgs":5,"weight":32,"done_pkgs":0,"done_weight":0},{"account":207489885,"customer":"REGINA MIRACLE INT VIETNAM CO.","region":"Hai Phong","pkgs":19,"weight":69,"done_pkgs":0,"done_weight":0},{"account":208315955,"customer":"MICRO COMMERCIAL COMPONENTS VI","region":"Bac Ninh","pkgs":46,"weight":213,"done_pkgs":0,"done_weight":0},{"account":145798124,"customer":"MR ANH","region":"Tu Liem","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":722329171,"customer":"INORSEN VINA CO.,LTD","region":"ALS","pkgs":12,"weight":134,"done_pkgs":0,"done_weight":0},{"account":867499610,"customer":"HIEN HOANG","region":"ALS","pkgs":2,"weight":2,"done_pkgs":2,"done_weight":2},{"account":877891178,"customer":"X-FORCE DESIGN SOLUTION VN JSC","region":"Tu Liem","pkgs":1,"weight":2,"done_pkgs":0,"done_weight":0},{"account":763804399,"customer":"OCEANUS OUTWEAR CO., LTD","region":"Nam Dinh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":575391540,"customer":"VIETNAM GRAND-PRO ROBOT TECH","region":"Hai Phong","pkgs":2,"weight":18,"done_pkgs":0,"done_weight":0},{"account":667316618,"customer":"QUYNH QUYNH TRAN","region":"Hai Phong","pkgs":2,"weight":8,"done_pkgs":1,"done_weight":4},{"account":771872352,"customer":"LUXSHARE-ICT (NGHE AN) LIMITED","region":"Unassigned","pkgs":2,"weight":2,"done_pkgs":1,"done_weight":1},{"account":868185376,"customer":"GARMENT 10 CORPORATION JSC","region":"Long Bien","pkgs":2,"weight":5,"done_pkgs":0,"done_weight":0},{"account":851496793,"customer":"SURAN COMPANY","region":"Thanh Xuan","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":141110950,"customer":"VIET HAO HIGH QUALITY GARMENT","region":"Hung Yen","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":802282168,"customer":"YOUNG FAST OPTOELECTRONICS","region":"Tu Liem","pkgs":1,"weight":8,"done_pkgs":0,"done_weight":0},{"account":298600005,"customer":"TRI DUC CO.,LTD","region":"Bac Ninh","pkgs":5,"weight":40,"done_pkgs":5,"done_weight":40},{"account":790026756,"customer":"LA MARTINIQUAISE VN","region":"Long Bien","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":755522260,"customer":"VIET HAO HIGH QUALITY GARMENT","region":"Hung Yen","pkgs":3,"weight":3,"done_pkgs":0,"done_weight":0},{"account":567667740,"customer":"VIETNAM IBE LASER CO.,LTD","region":"Bac Ninh","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":625608236,"customer":"MACDERMID PERFORMANCE SOLUTION","region":"Tu Liem","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":203341950,"customer":"TOAN ANH JSC","region":"ALS","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":769306714,"customer":"MRS HUONG","region":"Tay Ho","pkgs":1,"weight":4,"done_pkgs":0,"done_weight":0},{"account":780607939,"customer":"VIET NAM CREATIVE SOURCE CO.,","region":"Nam Dinh","pkgs":7,"weight":74,"done_pkgs":0,"done_weight":0},{"account":202999154,"customer":"VIET NAM YICHANG NEW MATERIAL","region":"Hung Yen","pkgs":5,"weight":54,"done_pkgs":0,"done_weight":0},{"account":852298286,"customer":"PACIFIC AIRLIFT VIETNAM CO., L","region":"Unassigned","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":697809880,"customer":"CONG TY TNHH SANCHINE VIETNAM","region":"Bac Ninh","pkgs":2,"weight":5,"done_pkgs":0,"done_weight":0},{"account":204647224,"customer":"DUGARCO","region":"Long Bien","pkgs":2,"weight":3,"done_pkgs":0,"done_weight":0},{"account":196936360,"customer":"VIETTEL POST JSC","region":"Tu Liem","pkgs":20,"weight":44,"done_pkgs":8,"done_weight":5},{"account":285850738,"customer":"SUMIDA ELECTRONICS VIETNAM","region":"Hai Duong","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":995482878,"customer":"ALICE (LE XUAN)","region":"Tu Liem","pkgs":3,"weight":4,"done_pkgs":0,"done_weight":0},{"account":216005801,"customer":"AVC TECHNOLOGY (VIETNAM) CO.,","region":"Unassigned","pkgs":3,"weight":3,"done_pkgs":1,"done_weight":1},{"account":781543853,"customer":"ADCEL","region":"ALS","pkgs":7,"weight":39,"done_pkgs":0,"done_weight":0},{"account":202845880,"customer":"CONG TY TNHH SNOW COAST (VN)","region":"Unassigned","pkgs":5,"weight":13,"done_pkgs":2,"done_weight":6},{"account":145914523,"customer":"ASMARA INTERNATIONAL LIMITED","region":"Tu Liem","pkgs":3,"weight":21,"done_pkgs":0,"done_weight":0},{"account":583576940,"customer":"TOTO VIETNAM VINH PHUC BR","region":"ALS","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":207515024,"customer":"JING DONG","region":"Tay Ho","pkgs":50,"weight":68,"done_pkgs":50,"done_weight":68},{"account":667542960,"customer":"TOZEN CORPORATION VIET NAM CO.","region":"Unassigned","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":861203166,"customer":"CHIEN BIAN VIET NAM","region":"Nam Dinh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":790878051,"customer":"MERRY & LUXSHARE(VIET NAM)CO.,","region":"Nam Dinh","pkgs":2,"weight":2,"done_pkgs":0,"done_weight":0},{"account":936808670,"customer":"VARROC VIETNAM CO., LTD","region":"ALS","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":896387456,"customer":"VINA VALVES JSC","region":"Tay Ho","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":200664258,"customer":"CTY TNHH SAFETY HARDWARE VIET","region":"Hai Duong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":414450121,"customer":"IRISO ELECTRONICS VIETNAM CO.,","region":"Hai Duong","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":673997490,"customer":"SKYLINK MANUFACTURING VN CO","region":"Bac Ninh","pkgs":1,"weight":19,"done_pkgs":0,"done_weight":0},{"account":345611037,"customer":"VIETNAM POYUN ELECTRONICS CO.,","region":"Hai Duong","pkgs":3,"weight":35,"done_pkgs":3,"done_weight":35},{"account":662313599,"customer":"GFT VIET NAM COMPANY LIMITED","region":"Hai Duong","pkgs":2,"weight":12,"done_pkgs":0,"done_weight":0},{"account":571181584,"customer":"CONG TY SEETHING VIET NAM","region":"Hai Phong","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":622562570,"customer":"TUAN TRAN","region":"Bac Ninh","pkgs":2,"weight":15,"done_pkgs":0,"done_weight":0},{"account":207461417,"customer":"ANH HAIR VIETNAM","region":"Bac Ninh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":681167650,"customer":"FANTASTIC INTERNATIONAL CO LTD","region":"Hai Duong","pkgs":2,"weight":3,"done_pkgs":0,"done_weight":0},{"account":729177733,"customer":"TOPCO (VIETNAM) TRADING/","region":"Hung Yen","pkgs":1,"weight":11,"done_pkgs":0,"done_weight":0},{"account":477858988,"customer":"VALQUA VIETNAM CO., LTD","region":"Hai Duong","pkgs":1,"weight":4,"done_pkgs":0,"done_weight":0},{"account":293159467,"customer":"YOUNG ONE NAM DINH CO., LTD","region":"Nam Dinh","pkgs":85,"weight":733,"done_pkgs":0,"done_weight":0},{"account":204273178,"customer":"GIFT STORY INDUSTRIAL LIMITED","region":"Nam Dinh","pkgs":3,"weight":13,"done_pkgs":0,"done_weight":0},{"account":795728899,"customer":"NHUAN PHAT NEW MATERIAL CO.,LT","region":"Hung Yen","pkgs":2,"weight":4,"done_pkgs":1,"done_weight":2},{"account":791543835,"customer":"FUSHAN TECHNOLOGY (VIETNAM)","region":"Bac Ninh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":201930465,"customer":"WTL TECHNOLOGY VIETNAM CO LTD","region":"Bac Ninh","pkgs":1,"weight":2,"done_pkgs":0,"done_weight":0},{"account":686426297,"customer":"LITE-ON VIETNAM CO., LTD","region":"Hai Phong","pkgs":8,"weight":106,"done_pkgs":0,"done_weight":0},{"account":203378703,"customer":"PRIME TRADE INC","region":"ALS","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":873975857,"customer":"TEXON SEMICONDUCTOR TECHNOLOGI","region":"Bac Ninh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":184861100,"customer":"RORZE ROBOTECH CO.,LTD","region":"Hai Phong","pkgs":4,"weight":29,"done_pkgs":0,"done_weight":0},{"account":720989840,"customer":"VN RISESUN NEW MATERIAL CO LTD","region":"Bac Ninh","pkgs":1,"weight":4,"done_pkgs":0,"done_weight":0},{"account":811294870,"customer":"GLOBAL TONE CO., LTD","region":"Nam Dinh","pkgs":6,"weight":34,"done_pkgs":0,"done_weight":0},{"account":208377537,"customer":"COMPANY LIMITED","region":"Hai Phong","pkgs":5,"weight":5,"done_pkgs":0,"done_weight":0},{"account":204038573,"customer":"DAIMAY AUTOMOTIVE PARTS VN","region":"Hai Phong","pkgs":11,"weight":5,"done_pkgs":0,"done_weight":0},{"account":623837238,"customer":"GOERTEK TECHNOLOGY VINA CO.,LT","region":"Bac Ninh","pkgs":2,"weight":18,"done_pkgs":0,"done_weight":0},{"account":632986653,"customer":"LG CHEM HAI PHONG EP","region":"Hai Phong","pkgs":1,"weight":6,"done_pkgs":0,"done_weight":0},{"account":201360962,"customer":"ETRON VIETNAM TECHNOLOGIES","region":"Hai Duong","pkgs":1,"weight":9,"done_pkgs":0,"done_weight":0},{"account":206000861,"customer":"NIPPON POLYMER VN CO.,LTD","region":"Bac Ninh","pkgs":20,"weight":264,"done_pkgs":0,"done_weight":0},{"account":917004790,"customer":"ATHENA VN FOOTWEAR","region":"Nam Dinh","pkgs":328,"weight":786,"done_pkgs":127,"done_weight":385},{"account":204992153,"customer":"CONG TY TNHH HONG HAI FLOORS","region":"Hung Yen","pkgs":1,"weight":10,"done_pkgs":1,"done_weight":10},{"account":200676979,"customer":"CTY CP GIAY VINH YEN","region":"ALS","pkgs":18,"weight":73,"done_pkgs":0,"done_weight":0},{"account":619235070,"customer":"HOA NGUYEN","region":"Hai Phong","pkgs":4,"weight":44,"done_pkgs":0,"done_weight":0},{"account":549445900,"customer":"ISUN PRODUCTS VIET NAM CO.,LTD","region":"Hung Yen","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":516713640,"customer":"VIETNAM LANDMARK INTL CO., LTD","region":"Bac Ninh","pkgs":3,"weight":27,"done_pkgs":0,"done_weight":0},{"account":205433993,"customer":"ABC VIETNAMESE","region":"Bac Ninh","pkgs":2,"weight":2,"done_pkgs":0,"done_weight":0},{"account":774697330,"customer":"CONG TY TNHH MECHANICAL TC GRO","region":"Hai Duong","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":713488747,"customer":"SUN JADE VIETNAM FOOTWEAR LIMI","region":"Nam Dinh","pkgs":2,"weight":18,"done_pkgs":0,"done_weight":0},{"account":619486099,"customer":"VINA ENESOL VINA CO., LTD","region":"Nam Dinh","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":805823739,"customer":"EASTECH VN","region":"Hai Duong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":635288450,"customer":"VINATECH VINA CO., LTD.","region":"Bac Ninh","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":729630071,"customer":"WINGSBURG VIETNAM","region":"Hai Duong","pkgs":2,"weight":2,"done_pkgs":2,"done_weight":2},{"account":200898612,"customer":"ARTIVERSE KNIT COMPANY LIMITED","region":"Hung Yen","pkgs":2,"weight":5,"done_pkgs":0,"done_weight":0},{"account":202425863,"customer":"PRAXIS AUTOMATION VIETNAM","region":"Hai Phong","pkgs":2,"weight":22,"done_pkgs":0,"done_weight":0},{"account":654490481,"customer":"GREAT GLOBAL","region":"Nam Dinh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":207579400,"customer":"SUNONLINE VIETNAM CO., LTD","region":"Bac Ninh","pkgs":9,"weight":38,"done_pkgs":0,"done_weight":0},{"account":207472125,"customer":"NIEN HSING NINH BINH GARMENT C","region":"Nam Dinh","pkgs":3,"weight":7,"done_pkgs":0,"done_weight":0},{"account":925270938,"customer":"FIT VOLTAIRA VIETNAM CO., LTD","region":"Hai Duong","pkgs":7,"weight":43,"done_pkgs":0,"done_weight":0},{"account":666220676,"customer":"FSK CO (SEOUL SEMICONDUCTOR VI","region":"Nam Dinh","pkgs":5,"weight":10,"done_pkgs":0,"done_weight":0},{"account":654248192,"customer":"BAI HONG COMPANY LIMITED","region":"Hai Duong","pkgs":2,"weight":6,"done_pkgs":0,"done_weight":0},{"account":203398195,"customer":"TOPSUN (VIETNAM) COMPANY LIMIT","region":"Nam Dinh","pkgs":4,"weight":4,"done_pkgs":1,"done_weight":1},{"account":514344680,"customer":"SUNNY INFRARED VIETNAM CO.,LTD","region":"ALS","pkgs":7,"weight":40,"done_pkgs":0,"done_weight":0},{"account":260981390,"customer":"YOUNGONE BAC GIANG CO., LTD","region":"Bac Ninh","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":441228066,"customer":"TAE YANG VINA CO., LTD","region":"Hung Yen","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":206567963,"customer":"HUNG MS HANI","region":"Nam Dinh","pkgs":1,"weight":15,"done_pkgs":0,"done_weight":0},{"account":806270695,"customer":"PEGATRON VN CO., LTD","region":"Hai Phong","pkgs":94,"weight":292,"done_pkgs":0,"done_weight":0},{"account":200271086,"customer":"TNHH JC FUSION GROUP","region":"Hung Yen","pkgs":6,"weight":87,"done_pkgs":6,"done_weight":87},{"account":911870290,"customer":"NGOC HUNG FOOTWEAR","region":"Hung Yen","pkgs":2,"weight":15,"done_pkgs":0,"done_weight":0},{"account":511218020,"customer":"TONGWEI ELECTRONICS(VIETNAM)CO","region":"Hai Phong","pkgs":5,"weight":43,"done_pkgs":0,"done_weight":0},{"account":734662429,"customer":"YAMANI DYNASTY CO., LTD","region":"Nam Dinh","pkgs":2,"weight":2,"done_pkgs":0,"done_weight":0},{"account":551555500,"customer":"UTI VINA CO.,LTD","region":"ALS","pkgs":1,"weight":10,"done_pkgs":0,"done_weight":0},{"account":795973486,"customer":"SANTA CLARA CO., LTD","region":"Nam Dinh","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":753409580,"customer":"TNHH JIA JUN LEATHER VIET NAM","region":"Nam Dinh","pkgs":2,"weight":8,"done_pkgs":0,"done_weight":0},{"account":730577451,"customer":"FOUSINE VN TECHNOLOGY CO ., LT","region":"Bac Ninh","pkgs":1,"weight":7,"done_pkgs":0,"done_weight":0},{"account":650031512,"customer":"BAC GIANG BGG GARMENT CORPORAT","region":"Bac Ninh","pkgs":2,"weight":9,"done_pkgs":0,"done_weight":0},{"account":968428497,"customer":"GFT UNIQUE VN CO., LTD","region":"Hai Duong","pkgs":2,"weight":5,"done_pkgs":2,"done_weight":5},{"account":388970006,"customer":"ARMSTRONG WESTON VIETNAM CO","region":"Bac Ninh","pkgs":1,"weight":6,"done_pkgs":0,"done_weight":0},{"account":294444920,"customer":"SH SPICE","region":"Bac Ninh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":209833762,"customer":"BURLEY INTELLIGENT MANUFACT (V","region":"Hai Duong","pkgs":1,"weight":25,"done_pkgs":0,"done_weight":0},{"account":868247010,"customer":"CTY TNHH SX DO CHOI DAIN VINA","region":"Hai Duong","pkgs":1,"weight":1,"done_pkgs":1,"done_weight":1},{"account":806252654,"customer":"SUNSHINE ELECTRONICS (VIETNAM)","region":"ALS","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":203471198,"customer":"X-CRAFT JSC","region":"Nam Dinh","pkgs":1,"weight":7,"done_pkgs":0,"done_weight":0},{"account":929484932,"customer":"BAC GIANG BGG","region":"Bac Ninh","pkgs":2,"weight":6,"done_pkgs":0,"done_weight":0},{"account":340392434,"customer":"SON HA GARMENT EXP J.S.C-THAI","region":"Nam Dinh","pkgs":2,"weight":8,"done_pkgs":0,"done_weight":0},{"account":200250519,"customer":"AACHEN SV.,CO LTD","region":"Hai Phong","pkgs":3,"weight":28,"done_pkgs":0,"done_weight":0},{"account":679074776,"customer":"ADTEC PLASMA TECHNOLOGY VN","region":"Bac Ninh","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":359330421,"customer":"THAI ANH INTRASECO","region":"Hai Phong","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":944479090,"customer":"PHOEBE THANH","region":"Bac Ninh","pkgs":2,"weight":2,"done_pkgs":0,"done_weight":0},{"account":972730017,"customer":"MXP CO., LTD","region":"Nam Dinh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":669657404,"customer":"ANAM ELECTRONICS VIETNAM CO.,L","region":"Nam Dinh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":619458079,"customer":"KAM FUNG VIET NAM INTERNATIONA","region":"Nam Dinh","pkgs":5,"weight":13,"done_pkgs":0,"done_weight":0},{"account":223263160,"customer":"SGS VIETNAM","region":"Hai Phong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":524946220,"customer":"WISTRON INFOCOMM (VIETNAM) CO.","region":"Nam Dinh","pkgs":2,"weight":9,"done_pkgs":0,"done_weight":0},{"account":773961379,"customer":"PROVIDENCE ENTERPRISE (VN) CO.","region":"Hai Phong","pkgs":3,"weight":18,"done_pkgs":0,"done_weight":0},{"account":201656797,"customer":"COMPAL (VIETNAM) CO., LTD","region":"ALS","pkgs":2,"weight":7,"done_pkgs":0,"done_weight":0},{"account":362011116,"customer":"LUCKY","region":"Hai Phong","pkgs":1,"weight":4,"done_pkgs":0,"done_weight":0},{"account":768977879,"customer":"DIEN NAM INDUSTRIAL CO., LTD","region":"Hai Phong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":996354172,"customer":"MOONPO DEVELOPMENT(VIETNAM) LI","region":"Nam Dinh","pkgs":2,"weight":3,"done_pkgs":0,"done_weight":0},{"account":676347070,"customer":"KWONG FONG VIETNAM COMPANY LIM","region":"Hai Duong","pkgs":27,"weight":291,"done_pkgs":27,"done_weight":291},{"account":687298519,"customer":"PRETTY VINA CO.LTD.","region":"Nam Dinh","pkgs":2,"weight":3,"done_pkgs":0,"done_weight":0},{"account":251849250,"customer":"JY HANAM CO.,LTD","region":"ALS","pkgs":2,"weight":6,"done_pkgs":0,"done_weight":0},{"account":698265140,"customer":"POWER 7 TECHNOLOGY VIET NAM CO","region":"Hai Phong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":467791249,"customer":"VAUDE VIET NAM CO., LTD","region":"Nam Dinh","pkgs":1,"weight":2,"done_pkgs":0,"done_weight":0},{"account":887445338,"customer":"FUSHAN TECHNOLOGY (VIETNAM) LI","region":"Bac Ninh","pkgs":1,"weight":14,"done_pkgs":0,"done_weight":0},{"account":488091581,"customer":"GOLDEN TOP CO.,LTD","region":"Hai Phong","pkgs":2,"weight":5,"done_pkgs":0,"done_weight":0},{"account":730111851,"customer":"N&N CO., LTD","region":"Bac Ninh","pkgs":2,"weight":38,"done_pkgs":0,"done_weight":0},{"account":707229896,"customer":"QISDA VIETNAM CO., LTD","region":"Nam Dinh","pkgs":1,"weight":4,"done_pkgs":0,"done_weight":0},{"account":951200034,"customer":"GLOBAL RESOURCES GROUP (VN)","region":"Hai Phong","pkgs":1,"weight":7,"done_pkgs":0,"done_weight":0},{"account":758024296,"customer":"GOLD CABLE VN CO.,LTD","region":"Hung Yen","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":208445900,"customer":"LCFC (VIETNAM) COMPANY LIMITED","region":"Nam Dinh","pkgs":2,"weight":213,"done_pkgs":0,"done_weight":0},{"account":636607495,"customer":"GEMTEK VINA","region":"Nam Dinh","pkgs":2,"weight":8,"done_pkgs":0,"done_weight":0},{"account":500230100,"customer":"UE VIETNAM CO.,LTD","region":"Hai Duong","pkgs":1,"weight":14,"done_pkgs":0,"done_weight":0},{"account":806734071,"customer":"CONG TY TNHH MINGHUI VIET NAM","region":"Hung Yen","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":660281479,"customer":"FANCY","region":"Hung Yen","pkgs":9,"weight":84,"done_pkgs":0,"done_weight":0},{"account":805278650,"customer":"LENS TECHNOLOGY (VIETNAM) CO.,","region":"Bac Ninh","pkgs":2,"weight":10,"done_pkgs":0,"done_weight":0},{"account":204696849,"customer":"AMPHENOL XGIGA (VIET NAM)","region":"Bac Ninh","pkgs":1,"weight":12,"done_pkgs":0,"done_weight":0},{"account":725615191,"customer":"SAMBOUND C/O GENIMEX JERSEY","region":"Hai Duong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":979198752,"customer":"TOMY VN CO., LTD","region":"Hai Phong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":394527165,"customer":"HA VU","region":"Hai Phong","pkgs":1,"weight":39,"done_pkgs":0,"done_weight":0},{"account":201046612,"customer":"ATHENA JEWELRY","region":"Hai Phong","pkgs":1,"weight":8,"done_pkgs":0,"done_weight":0},{"account":690654458,"customer":"MS NINH QUANG HUY EXPORT GARME","region":"Nam Dinh","pkgs":1,"weight":5,"done_pkgs":0,"done_weight":0},{"account":201780997,"customer":"HUALI GROUP VN","region":"ALS","pkgs":2,"weight":64,"done_pkgs":0,"done_weight":0},{"account":333204673,"customer":"HANA KOVI VIETNAM CO., LTD","region":"Bac Ninh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":553596807,"customer":"MS.NGUYET","region":"Bac Ninh","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":416696888,"customer":"D & Q JEWELLERY CO.,LTD","region":"Hai Phong","pkgs":1,"weight":3,"done_pkgs":0,"done_weight":0},{"account":203009955,"customer":"ARTIVERSE APPAREL CO., LTD","region":"Bac Ninh","pkgs":2,"weight":3,"done_pkgs":0,"done_weight":0},{"account":202742257,"customer":"BLUEVIEW VIETNAM IHC","region":"Hai Phong","pkgs":4,"weight":37,"done_pkgs":0,"done_weight":0},{"account":857225570,"customer":"THANH HUNG CO., LTD","region":"Hai Phong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":805909978,"customer":"SUGA INTERNATIONAL VN","region":"Bac Ninh","pkgs":1,"weight":4,"done_pkgs":0,"done_weight":0},{"account":328229340,"customer":"ORIENTALSPORTS INDUSTRIAL VN","region":"Hai Duong","pkgs":1,"weight":1,"done_pkgs":0,"done_weight":0},{"account":765918634,"customer":"AMPHENOLCOMMUNICATION ELETRONI","region":"Bac Ninh","pkgs":11,"weight":132,"done_pkgs":0,"done_weight":0},{"account":794487499,"customer":"KX HITECH CO., LTD","region":"Unassigned","pkgs":25,"weight":3611,"done_pkgs":0,"done_weight":0},{"account":777967711,"customer":"ILJIN DIAMOND VINA CO ., LTD","region":"Nam Dinh","pkgs":1,"weight":2,"done_pkgs":0,"done_weight":0},{"account":657877255,"customer":"COATS PHONG PHU","region":"Hung Yen","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":201810991,"customer":"INTERNATIONAL PACKAGING LTD","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":839371187,"customer":"NOW VINA CO.,LTD","region":"ALS","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":722618831,"customer":"VIETNAM REMY HAIR CO.,LTD","region":"ALS","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":651568579,"customer":"TAV CO LTD","region":"Nam Dinh","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":684728954,"customer":"CASABLANCA VIETNAM (STONE)","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":668249671,"customer":"EUROPEAN PLASTIC., JSC","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":415633866,"customer":"REGENT GARMENT FACTORY 2","region":"Hai Duong","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":679145410,"customer":"PRO SPORTS","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":609627387,"customer":"VIETNAM GARMENTS MANUFACTURING","region":"ALS","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":673638252,"customer":"T-CONCEPTS APPAREL CO LTD","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":782697374,"customer":"THUY AN CO LTD","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":688804132,"customer":"IBK - HANOI BRANCH","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":685663554,"customer":"CASABLANCA JSC","region":"Tu Liem","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0},{"account":976951999,"customer":"GARCO 10 JSC","region":"Long Bien","pkgs":0,"weight":0,"done_pkgs":0,"done_weight":0}],"routes":[{"route":320,"region":"Tay Ho","active":2,"active_upd":0,"cancelled":1,"completed":0,"exception":0,"total":3},{"route":411,"region":"ALS","active":6,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":6},{"route":428,"region":"Bac Ninh","active":11,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":11},{"route":495,"region":"Hai Phong","active":11,"active_upd":1,"cancelled":0,"completed":0,"exception":0,"total":12},{"route":330,"region":"Tay Ho","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":324,"region":"Tay Ho","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":413,"region":"Bac Ninh","active":11,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":11},{"route":328,"region":"Tay Ho","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":null,"region":"Unassigned","active":0,"active_upd":0,"cancelled":6,"completed":0,"exception":0,"total":6},{"route":462,"region":"Nam Dinh","active":1,"active_upd":0,"cancelled":2,"completed":1,"exception":0,"total":4},{"route":464,"region":"Nam Dinh","active":2,"active_upd":0,"cancelled":0,"completed":1,"exception":0,"total":3},{"route":311,"region":"Long Bien","active":7,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":7},{"route":439,"region":"Hung Yen","active":7,"active_upd":2,"cancelled":0,"completed":2,"exception":0,"total":11},{"route":432,"region":"Hung Yen","active":9,"active_upd":0,"cancelled":0,"completed":1,"exception":0,"total":10},{"route":338,"region":"Tay Ho","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":429,"region":"Bac Ninh","active":7,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":7},{"route":475,"region":"Nam Dinh","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":405,"region":"ALS","active":6,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":6},{"route":451,"region":"Hai Phong","active":15,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":15},{"route":358,"region":"Tu Liem","active":4,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":4},{"route":363,"region":"Tu Liem","active":0,"active_upd":1,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":477,"region":"Nam Dinh","active":7,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":7},{"route":365,"region":"Tu Liem","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":374,"region":"Thanh Xuan","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":419,"region":"Bac Ninh","active":4,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":4},{"route":301,"region":"ALS","active":5,"active_upd":0,"cancelled":1,"completed":1,"exception":1,"total":8},{"route":416,"region":"Bac Ninh","active":7,"active_upd":1,"cancelled":0,"completed":0,"exception":0,"total":8},{"route":331,"region":"Tay Ho","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":309,"region":"ALS","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":380,"region":"Thanh Xuan","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":471,"region":"Nam Dinh","active":7,"active_upd":0,"cancelled":1,"completed":0,"exception":0,"total":8},{"route":453,"region":"Hai Phong","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":356,"region":"Tu Liem","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":362,"region":"Tu Liem","active":6,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":6},{"route":490,"region":"Nam Dinh","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":454,"region":"Hai Phong","active":7,"active_upd":1,"cancelled":0,"completed":0,"exception":0,"total":8},{"route":318,"region":"Long Bien","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":300,"region":"ALS","active":3,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":3},{"route":461,"region":"Nam Dinh","active":3,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":3},{"route":"HO","region":"Unassigned","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":421,"region":"Bac Ninh","active":6,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":6},{"route":445,"region":"Hai Duong","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":364,"region":"Tu Liem","active":3,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":3},{"route":"DQ1","region":"Unassigned","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":352,"region":"Tu Liem","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":401,"region":"ALS","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":473,"region":"Nam Dinh","active":6,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":6},{"route":492,"region":"Nam Dinh","active":3,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":3},{"route":449,"region":"Hai Duong","active":5,"active_upd":0,"cancelled":1,"completed":3,"exception":0,"total":9},{"route":443,"region":"Hai Duong","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":441,"region":"Hai Duong","active":4,"active_upd":0,"cancelled":0,"completed":4,"exception":1,"total":9},{"route":459,"region":"Hai Phong","active":7,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":7},{"route":423,"region":"Bac Ninh","active":7,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":7},{"route":415,"region":"Bac Ninh","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":425,"region":"Bac Ninh","active":6,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":6},{"route":431,"region":"Hung Yen","active":6,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":6},{"route":463,"region":"Nam Dinh","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":403,"region":"ALS","active":5,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":5},{"route":457,"region":"Hai Phong","active":8,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":8},{"route":466,"region":"Nam Dinh","active":5,"active_upd":0,"cancelled":0,"completed":2,"exception":0,"total":7},{"route":412,"region":"Bac Ninh","active":3,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":3},{"route":455,"region":"Hai Phong","active":4,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":4},{"route":465,"region":"Nam Dinh","active":4,"active_upd":0,"cancelled":0,"completed":1,"exception":0,"total":5},{"route":494,"region":"Nam Dinh","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":460,"region":"Nam Dinh","active":7,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":7},{"route":420,"region":"Bac Ninh","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":456,"region":"Hai Phong","active":2,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":2},{"route":470,"region":"Nam Dinh","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":496,"region":"Hai Phong","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":"DQ3","region":"Unassigned","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1},{"route":354,"region":"Tu Liem","active":1,"active_upd":0,"cancelled":0,"completed":0,"exception":0,"total":1}],"top30_groups":[{"region":"Nam Dinh","total_pkgs":545,"members":[{"account":917004790,"customer":"ATHENA VN FOOTWEAR","region":"Nam Dinh","pkgs":328,"weight":786,"done_pkgs":127,"done_weight":385},{"account":206910355,"customer":"GOLDEN VICTORY NAM TRUC","region":"Nam Dinh","pkgs":108,"weight":864,"done_pkgs":75,"done_weight":625},{"account":293159467,"customer":"YOUNG ONE NAM DINH CO., LTD","region":"Nam Dinh","pkgs":85,"weight":733,"done_pkgs":0,"done_weight":0},{"account":210371553,"customer":"AVANCE LEATHER AND ACCESSORIES","region":"Nam Dinh","pkgs":17,"weight":232,"done_pkgs":14,"done_weight":214},{"account":780607939,"customer":"VIET NAM CREATIVE SOURCE CO.,","region":"Nam Dinh","pkgs":7,"weight":74,"done_pkgs":0,"done_weight":0}]},{"region":"Hung Yen","total_pkgs":281,"members":[{"account":750278086,"customer":"FULGENT SUN FOOTWEAR","region":"Hung Yen","pkgs":272,"weight":1448,"done_pkgs":269,"done_weight":1438},{"account":660281479,"customer":"FANCY","region":"Hung Yen","pkgs":9,"weight":84,"done_pkgs":0,"done_weight":0}]},{"region":"Hai Phong","total_pkgs":204,"members":[{"account":806270695,"customer":"PEGATRON VN CO., LTD","region":"Hai Phong","pkgs":94,"weight":292,"done_pkgs":0,"done_weight":0},{"account":773841250,"customer":"USI VIETNAM CO,. LTD","region":"Hai Phong","pkgs":64,"weight":259,"done_pkgs":0,"done_weight":0},{"account":207489885,"customer":"REGINA MIRACLE INT VIETNAM CO.","region":"Hai Phong","pkgs":19,"weight":69,"done_pkgs":0,"done_weight":0},{"account":204038573,"customer":"DAIMAY AUTOMOTIVE PARTS VN","region":"Hai Phong","pkgs":11,"weight":5,"done_pkgs":0,"done_weight":0},{"account":990199892,"customer":"BOLTUN INTERNATIONAL COMPANY L","region":"Hai Phong","pkgs":8,"weight":67,"done_pkgs":0,"done_weight":0},{"account":686426297,"customer":"LITE-ON VIETNAM CO., LTD","region":"Hai Phong","pkgs":8,"weight":106,"done_pkgs":0,"done_weight":0}]},{"region":"Bac Ninh","total_pkgs":107,"members":[{"account":208315955,"customer":"MICRO COMMERCIAL COMPONENTS VI","region":"Bac Ninh","pkgs":46,"weight":213,"done_pkgs":0,"done_weight":0},{"account":206000861,"customer":"NIPPON POLYMER VN CO.,LTD","region":"Bac Ninh","pkgs":20,"weight":264,"done_pkgs":0,"done_weight":0},{"account":765918634,"customer":"AMPHENOLCOMMUNICATION ELETRONI","region":"Bac Ninh","pkgs":11,"weight":132,"done_pkgs":0,"done_weight":0},{"account":207579400,"customer":"SUNONLINE VIETNAM CO., LTD","region":"Bac Ninh","pkgs":9,"weight":38,"done_pkgs":0,"done_weight":0},{"account":779929353,"customer":"FUYU PRECISION COMPONENT CO.,","region":"Bac Ninh","pkgs":7,"weight":19,"done_pkgs":0,"done_weight":0},{"account":680820333,"customer":"JHAO YANG RUBBER CO., LTD","region":"Bac Ninh","pkgs":7,"weight":20,"done_pkgs":0,"done_weight":0},{"account":205040639,"customer":"W&B TECHNOLOGY (VIET NAM)","region":"Bac Ninh","pkgs":7,"weight":22,"done_pkgs":0,"done_weight":0}]},{"region":"Tay Ho","total_pkgs":70,"members":[{"account":207515024,"customer":"JING DONG","region":"Tay Ho","pkgs":50,"weight":68,"done_pkgs":50,"done_weight":68},{"account":204944567,"customer":"JING DONG","region":"Tay Ho","pkgs":20,"weight":57,"done_pkgs":0,"done_weight":0}]},{"region":"Tu Liem","total_pkgs":40,"members":[{"account":866115966,"customer":"LOGASIA SCM CO., LTD","region":"Tu Liem","pkgs":20,"weight":50,"done_pkgs":0,"done_weight":0},{"account":196936360,"customer":"VIETTEL POST JSC","region":"Tu Liem","pkgs":20,"weight":44,"done_pkgs":8,"done_weight":5}]},{"region":"ALS","total_pkgs":37,"members":[{"account":200676979,"customer":"CTY CP GIAY VINH YEN","region":"ALS","pkgs":18,"weight":73,"done_pkgs":0,"done_weight":0},{"account":722329171,"customer":"INORSEN VINA CO.,LTD","region":"ALS","pkgs":12,"weight":134,"done_pkgs":0,"done_weight":0},{"account":781543853,"customer":"ADCEL","region":"ALS","pkgs":7,"weight":39,"done_pkgs":0,"done_weight":0}]},{"region":"Hai Duong","total_pkgs":27,"members":[{"account":676347070,"customer":"KWONG FONG VIETNAM COMPANY LIM","region":"Hai Duong","pkgs":27,"weight":291,"done_pkgs":27,"done_weight":291}]},{"region":"Unassigned","total_pkgs":25,"members":[{"account":794487499,"customer":"KX HITECH CO., LTD","region":"Unassigned","pkgs":25,"weight":3611,"done_pkgs":0,"done_weight":0}]},{"region":"Thanh Xuan","total_pkgs":11,"members":[{"account":219342175,"customer":"GIFT VALUE","region":"Thanh Xuan","pkgs":11,"weight":21,"done_pkgs":0,"done_weight":0}]}],"date":"05/09/2026"}
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 (function(){
-  var D = JSON.parse(document.getElementById('agg-data').textContent);
+  var DEFAULT_D = JSON.parse(document.getElementById('agg-data').textContent);
+  var DEFAULT_SRC = 'RawData Ngày N';
+  var STORE_KEY = 'pickup-dashboard-data';
   var STATUS_LABEL = {Active:'active', 'Active-Updated':'active', Completed:'completed', Exception:'exception', Cancelled:'cancelled'};
+  var COUNT_KEY = {Active:'active', 'Active-Updated':'active_upd', Completed:'completed', Exception:'exception', Cancelled:'cancelled'};
+  var ST_NORM = {'active':'Active','active-updated':'Active-Updated','active updated':'Active-Updated','completed':'Completed','exception':'Exception','cancelled':'Cancelled','canceled':'Cancelled'};
   var fmt = function(n){ return Number(n||0).toLocaleString('vi-VN'); };
+  var $ = function(id){ return document.getElementById(id); };
 
-  // ---------- HERO + STAT CARDS ----------
-  var totalRows = D.total_rows;
-  var processed = D.completed + D.exception + D.cancelled;
-  var activeAll = D.active + D.active_upd;
-  var rate = totalRows ? (processed/totalRows*100) : 0;
+  // ================= ĐỌC FILE RAWDATA =================
+  var norm = function(s){ return String(s==null?'':s).replace(/\s+/g,' ').trim().toLowerCase(); };
+  var str = function(v){ return v==null?'':String(v).trim(); };
+  var num = function(v){ var n=typeof v==='number'?v:parseFloat(String(v==null?'':v).replace(/,/g,'')); return isFinite(n)?n:0; };
+  var FIELDS = {disp:['disp loc'], account:['account'], customer:['customer'], pkgs:['total pkgs','pkgs'], weight:['total weight','weight'],
+    status:['status'], scan:['scan time'], route:['asg route','route'], region:['region'], pudate:['p/u date','pu date']};
 
-  document.getElementById('metaDate').textContent = D.date || 'Ngày N';
-  document.getElementById('heroPkgs').textContent = fmt(D.total_pkgs);
-  document.getElementById('heroWeight').textContent = fmt(D.total_weight);
-  document.getElementById('heroRate').textContent = rate.toFixed(1)+'%';
-  document.getElementById('heroRateSub').textContent = 'trên '+fmt(totalRows)+' đơn đã ghi nhận trạng thái';
-
-  document.getElementById('statTotal').textContent = fmt(totalRows);
-  document.getElementById('statTotalSub').textContent = fmt(D.total_pkgs)+' kiện · '+fmt(D.total_weight)+' kg';
-
-  document.getElementById('statCompleted').textContent = fmt(D.completed);
-  document.getElementById('statCompletedSub').textContent = (totalRows? (D.completed/totalRows*100).toFixed(1):'0')+'% trên tổng đơn';
-
-  document.getElementById('statActive').textContent = fmt(activeAll);
-  document.getElementById('statActiveSub').textContent = 'Active '+fmt(D.active)+' · Active-Updated '+fmt(D.active_upd);
-
-  document.getElementById('statException').textContent = fmt(D.exception);
-  document.getElementById('statExceptionSub').textContent = (totalRows? (D.exception/totalRows*100).toFixed(1):'0')+'% trên tổng đơn';
-
-  document.getElementById('statCancelled').textContent = fmt(D.cancelled);
-  document.getElementById('statCancelledSub').textContent = (totalRows? (D.cancelled/totalRows*100).toFixed(1):'0')+'% trên tổng đơn';
-
-  document.getElementById('statRate').textContent = rate.toFixed(1)+'%';
-
-  // ---------- HOURLY CHART (empty-state, no Scan Time data) ----------
-  document.getElementById('chartArea').innerHTML =
-    '<div class="empty-chart">'+
-      '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7" stroke-dasharray="2 3"/></svg>'+
-      '<div>Chưa có dữ liệu chấm giờ scan (Scan Time)<br>trong bản RawData Ngày N hiện tại.</div>'+
-    '</div>';
-
-  // ---------- KHO (Disp Loc) BREAKDOWN ----------
-  (function(){
-    var kho = D.kho, names = Object.keys(kho);
-    var totals = {}; names.forEach(function(k){
-      var c = kho[k]; totals[k] = Object.keys(c).reduce(function(s,st){return s+c[st];},0);
+  function findHeader(rows){
+    for(var i=0;i<Math.min(rows.length,15);i++){
+      var h=(rows[i]||[]).map(norm);
+      if(h.indexOf('status')>=0 && (h.indexOf('account')>=0 || h.indexOf('disp loc')>=0)) return i;
+    }
+    return -1;
+  }
+  function pickSheet(wb){
+    var names=wb.SheetNames, seen={}, order=[];
+    names.filter(function(n){return /raw\s*data\s*ng[aà]y\s*n/i.test(n);})
+      .concat(names.filter(function(n){return /raw\s*data/i.test(n);}), names)
+      .forEach(function(n){ if(!seen[n]){seen[n]=1;order.push(n);} });
+    for(var k=0;k<order.length;k++){
+      var rows=XLSX.utils.sheet_to_json(wb.Sheets[order[k]],{header:1,defval:null,raw:true});
+      var hi=findHeader(rows);
+      if(hi>=0) return {name:order[k], rows:rows, hi:hi};
+    }
+    return null;
+  }
+  function readRouteMap(wb){
+    var map={}, name=wb.SheetNames.filter(function(n){return /route\s*map/i.test(n);})[0];
+    if(!name) return map;
+    var rows=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1,defval:null,raw:true});
+    var h=(rows[0]||[]).map(norm), ri=h.indexOf('route'), gi=h.indexOf('region');
+    if(ri<0||gi<0) return map;
+    rows.slice(1).forEach(function(r){ if(r[ri]!=null && str(r[gi])) map[String(r[ri]).trim()]=str(r[gi]); });
+    return map;
+  }
+  function toRecords(sheet){
+    var head=sheet.rows[sheet.hi].map(norm), idx={};
+    Object.keys(FIELDS).forEach(function(f){
+      for(var i=0;i<FIELDS[f].length;i++){ var j=head.indexOf(FIELDS[f][i]); if(j>=0){ idx[f]=j; break; } }
     });
+    var recs=[];
+    sheet.rows.slice(sheet.hi+1).forEach(function(r){
+      if(!r) return;
+      var o={}; Object.keys(idx).forEach(function(f){ o[f]=r[idx[f]]; });
+      if(str(o.status)==='' && str(o.account)==='' && str(o.disp)==='') return; // dòng trống
+      recs.push(o);
+    });
+    return {recs:recs, idx:idx};
+  }
+  function scanHour(v){
+    if(v==null||v==='') return null;
+    if(typeof v==='number'){ var frac=v%1; if(frac<0) return null; return Math.min(23,Math.floor(frac*24+1e-7)); }
+    if(v instanceof Date) return isNaN(v)?null:v.getHours();
+    var m=String(v).match(/(\d{1,2}):(\d{2})/); return m? Math.min(23,+m[1]) : null;
+  }
+  function puKey(v){
+    if(v==null||v==='') return null;
+    var s=String(v).trim(), m;
+    if(/^\d{8}$/.test(s)) return s;
+    if((m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/))) return m[3]+('0'+m[2]).slice(-2)+('0'+m[1]).slice(-2);
+    if(typeof v==='number' && v>20000 && v<80000){ var d=new Date(Math.round((v-25569)*864e5)); return d.getUTCFullYear()+('0'+(d.getUTCMonth()+1)).slice(-2)+('0'+d.getUTCDate()).slice(-2); }
+    return null;
+  }
+  var puLabel = function(k){ return k.slice(6,8)+'/'+k.slice(4,6)+'/'+k.slice(0,4); };
+
+  function aggregate(recs, routeMap){
+    var D={total_rows:0,total_pkgs:0,total_weight:0,completed:0,active:0,active_upd:0,exception:0,cancelled:0,
+      kho:{},region:{},accounts:[],routes:[],top30_groups:[],hours:null,unknown:{}};
+    var acc={}, accOrder=[], rt={}, rtOrder=[], hours={}, scanned=0;
+    function bump(obj,key,st){ var c=obj[key]||(obj[key]={}); c[st]=(c[st]||0)+1; }
+    recs.forEach(function(r){
+      var st=ST_NORM[norm(r.status)];
+      if(!st){ var raw=str(r.status)||'(trống)'; D.unknown[raw]=(D.unknown[raw]||0)+1; st='Active'; }
+      var pk=num(r.pkgs), wt=num(r.weight);
+      D.total_rows++; D.total_pkgs+=pk; D.total_weight+=wt; D[COUNT_KEY[st]]++;
+      var route=(r.route==null||str(r.route)==='')?null:r.route;
+      var region=str(r.region) || (route!=null && routeMap[String(route).trim()]) || 'Unassigned';
+      bump(D.kho, str(r.disp)||'(Không rõ)', st);
+      bump(D.region, region, st);
+      if(str(r.account)!==''){
+        var ak=String(r.account).trim();
+        var a=acc[ak]; if(!a){ a=acc[ak]={account:r.account,customer:str(r.customer),region:region,pkgs:0,weight:0,done_pkgs:0,done_weight:0}; accOrder.push(ak); }
+        a.pkgs+=pk; a.weight+=wt; if(st==='Completed'){ a.done_pkgs+=pk; a.done_weight+=wt; }
+      }
+      var rk=route==null?'__none__':String(route).trim();
+      var x=rt[rk]; if(!x){ x=rt[rk]={route:route,region:region,active:0,active_upd:0,cancelled:0,completed:0,exception:0,total:0}; rtOrder.push(rk); }
+      x[COUNT_KEY[st]]++; x.total++;
+      var h=scanHour(r.scan);
+      if(h!=null && (st==='Completed'||st==='Exception')){ hours[h]=(hours[h]||0)+1; scanned++; }
+    });
+    var r1=function(v){ return Math.round(v*10)/10; };
+    D.total_pkgs=r1(D.total_pkgs); D.total_weight=r1(D.total_weight);
+    D.accounts=accOrder.map(function(k){ var a=acc[k]; a.pkgs=r1(a.pkgs); a.weight=r1(a.weight); a.done_pkgs=r1(a.done_pkgs); a.done_weight=r1(a.done_weight); return a; });
+    D.routes=rtOrder.map(function(k){ return rt[k]; });
+    // Top 30 account theo Pkgs (hòa thì theo Weight), nhóm theo khu vực
+    var top=D.accounts.filter(function(a){return a.pkgs>0;}).sort(function(a,b){return b.pkgs-a.pkgs||b.weight-a.weight;}).slice(0,30);
+    var groups={};
+    top.forEach(function(a){ var g=groups[a.region]||(groups[a.region]={region:a.region,total_pkgs:0,members:[]}); g.members.push(a); g.total_pkgs=r1(g.total_pkgs+a.pkgs); });
+    D.top30_groups=Object.keys(groups).map(function(k){ return groups[k]; });
+    if(scanned) D.hours=hours;
+    return D;
+  }
+
+  function loadWorkbook(wb, fileName){
+    var sheet=pickSheet(wb);
+    if(!sheet) throw new Error('Không tìm thấy sheet có cột "Status" và "Account"/"Disp Loc". Hãy dùng file RawData Ngày N (hoặc file Pickup_Dashboard có sheet RawData).');
+    var out=toRecords(sheet), recs=out.recs;
+    if(!recs.length) throw new Error('Sheet "'+sheet.name+'" không có dòng dữ liệu nào.');
+    var dateLabel=null, note='';
+    if(out.idx.pudate!=null){
+      var keys={}; recs.forEach(function(r){ var k=puKey(r.pudate); if(k) keys[k]=(keys[k]||0)+1; });
+      var ks=Object.keys(keys).sort();
+      if(ks.length){
+        var last=ks[ks.length-1]; dateLabel=puLabel(last);
+        if(ks.length>1){ var before=recs.length; recs=recs.filter(function(r){ return puKey(r.pudate)===last; }); note='File có '+ks.length+' ngày P/U, đang hiển thị ngày mới nhất '+dateLabel+' ('+fmt(recs.length)+'/'+fmt(before)+' dòng).'; }
+      }
+    }
+    if(!dateLabel){
+      // Không có cột P/U Date: lấy ngày trong tên file nếu có, không thì ghi rõ là thời điểm nạp
+      var m=String(fileName).match(/(\d{4})[_\-.](\d{2})[_\-.](\d{2})/), now=new Date(), p2=function(n){return ('0'+n).slice(-2);};
+      dateLabel=m? m[3]+'/'+m[2]+'/'+m[1] : 'Ngày N · nạp lúc '+p2(now.getDate())+'/'+p2(now.getMonth()+1)+'/'+now.getFullYear()+' '+p2(now.getHours())+':'+p2(now.getMinutes());
+    }
+    var D=aggregate(recs, readRouteMap(wb));
+    D.date=dateLabel;
+    var unk=Object.keys(D.unknown);
+    if(unk.length) note+=(note?' ':'')+'Trạng thái lạ được tính vào Đang xử lý: '+unk.map(function(k){return k+' ('+D.unknown[k]+')';}).join(', ')+'.';
+    if(out.idx.pkgs==null||out.idx.weight==null) note+=(note?' ':'')+'Thiếu cột Total Pkgs/Total Weight nên số kiện/kg có thể bằng 0.';
+    return {D:D, src:fileName+' · '+sheet.name, note:note};
+  }
+
+  // ================= VẼ DASHBOARD =================
+  var routes=[], state={region:'__all__', q:'', sortKey:'total', sortDir:-1};
+
+  function renderAll(D, src){
+    var totalRows = D.total_rows;
+    var processed = D.completed + D.exception + D.cancelled;
+    var activeAll = D.active + D.active_upd;
+    var rate = totalRows ? (processed/totalRows*100) : 0;
+    var pctOf = function(n){ return (totalRows? (n/totalRows*100).toFixed(1):'0')+'% trên tổng đơn'; };
+
+    $('metaDate').textContent = D.date || 'Ngày N';
+    $('metaSrc').textContent = src || DEFAULT_SRC;
+    $('heroPkgs').textContent = fmt(D.total_pkgs);
+    $('heroWeight').textContent = fmt(D.total_weight);
+    $('heroRate').textContent = rate.toFixed(1)+'%';
+    $('heroRateSub').textContent = 'trên '+fmt(totalRows)+' đơn đã ghi nhận trạng thái';
+    $('statTotal').textContent = fmt(totalRows);
+    $('statTotalSub').textContent = fmt(D.total_pkgs)+' kiện · '+fmt(D.total_weight)+' kg';
+    $('statCompleted').textContent = fmt(D.completed); $('statCompletedSub').textContent = pctOf(D.completed);
+    $('statActive').textContent = fmt(activeAll); $('statActiveSub').textContent = 'Active '+fmt(D.active)+' · Active-Updated '+fmt(D.active_upd);
+    $('statException').textContent = fmt(D.exception); $('statExceptionSub').textContent = pctOf(D.exception);
+    $('statCancelled').textContent = fmt(D.cancelled); $('statCancelledSub').textContent = pctOf(D.cancelled);
+    $('statRate').textContent = rate.toFixed(1)+'%';
+
+    renderChart(D);
+    renderKho(D);
+    renderRegion(D);
+    renderAccounts(D);
+    setupRoutes(D);
+    $('footNote').textContent = 'Dashboard dựng từ '+(src||DEFAULT_SRC)+(D.hours? '.' : ' — chưa có dữ liệu cột Scan Time nên biểu đồ tiến độ theo giờ chưa có số liệu.');
+  }
+
+  function renderChart(D){
+    if(!D.hours){
+      $('chartSub').textContent = 'Lũy kế theo giờ scan';
+      $('chartArea').innerHTML =
+        '<div class="empty-chart">'+
+          '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 3v18h18"/><path d="M7 15l4-5 3 3 5-7" stroke-dasharray="2 3"/></svg>'+
+          '<div>Chưa có dữ liệu chấm giờ scan (Scan Time)<br>trong bản RawData Ngày N hiện tại.</div>'+
+        '</div>';
+      return;
+    }
+    var hs=Object.keys(D.hours).map(Number), h0=Math.min.apply(null,hs), h1=Math.max.apply(null,hs);
+    var cats=[], cum=0; for(var h=h0;h<=h1;h++){ cum+=D.hours[h]||0; cats.push({h:h,n:D.hours[h]||0,cum:cum}); }
+    var W=640,H=230,pl=36,pr=10,pt=18,pb=26, iw=W-pl-pr, ih=H-pt-pb, max=Math.max(1,cum);
+    var bw=iw/cats.length, gap=Math.min(10,bw*0.25);
+    var svg='<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="Lũy kế đơn đã xử lý theo giờ scan">';
+    [0,0.5,1].forEach(function(t){ var y=pt+ih*(1-t); svg+='<line x1="'+pl+'" x2="'+(W-pr)+'" y1="'+y+'" y2="'+y+'" stroke="#e6e9f0"/><text x="'+(pl-6)+'" y="'+(y+4)+'" font-size="10" fill="#64748b" text-anchor="end">'+fmt(Math.round(max*t))+'</text>'; });
+    cats.forEach(function(c,i){
+      var x=pl+i*bw+gap/2, bh=c.cum/max*ih, y=pt+ih-bh;
+      svg+='<rect x="'+x+'" y="'+y+'" width="'+(bw-gap)+'" height="'+Math.max(1,bh)+'" rx="3" fill="#16a34a"><title>'+c.h+'h: +'+c.n+' · lũy kế '+c.cum+'</title></rect>';
+      if(bw>22) svg+='<text x="'+(x+(bw-gap)/2)+'" y="'+(y-4)+'" font-size="10" font-weight="700" fill="#0f172a" text-anchor="middle">'+fmt(c.cum)+'</text>';
+      svg+='<text x="'+(x+(bw-gap)/2)+'" y="'+(H-8)+'" font-size="10" fill="#64748b" text-anchor="middle">'+c.h+'h</text>';
+    });
+    svg+='</svg>';
+    $('chartSub').textContent = 'Lũy kế Completed + Exception theo giờ scan · '+fmt(cum)+'/'+fmt(D.total_rows)+' đơn';
+    $('chartArea').innerHTML = svg;
+  }
+
+  function segsOf(counts){
+    var seg={completed:0,active:0,exception:0,cancelled:0};
+    Object.keys(counts).forEach(function(st){ seg[STATUS_LABEL[st]||'active'] += counts[st]; });
+    return seg;
+  }
+  function segHtml(seg,total,minPct){
+    var inner='';
+    ['completed','active','exception','cancelled'].forEach(function(k){
+      if(!seg[k]) return;
+      var pct = total? (seg[k]/total*100) : 0;
+      inner += '<div class="seg '+k+'" style="width:'+pct+'%">'+ (pct>minPct? (seg[k]+' · '+Math.round(pct)+'%'):'') +'</div>';
+    });
+    return inner;
+  }
+  function breakdown(obj){
+    var names=Object.keys(obj), totals={};
+    names.forEach(function(k){ var c=obj[k]; totals[k]=Object.keys(c).reduce(function(s,st){return s+c[st];},0); });
     names.sort(function(a,b){return totals[b]-totals[a];});
-    var maxTotal = Math.max.apply(null, names.map(function(k){return totals[k];}));
-    document.getElementById('khoSub').textContent = names.join(' · ');
+    return {names:names, totals:totals, max:Math.max.apply(null,[1].concat(names.map(function(k){return totals[k];})))};
+  }
 
-    var grand = {completed:0,active:0,exception:0,cancelled:0,total:0};
-    var html = '';
-    names.forEach(function(k){
-      var c = kho[k];
-      var seg = {completed:0,active:0,exception:0,cancelled:0};
-      Object.keys(c).forEach(function(st){ seg[STATUS_LABEL[st]] += c[st]; });
-      var t = totals[k];
-      grand.completed+=seg.completed; grand.active+=seg.active; grand.exception+=seg.exception; grand.cancelled+=seg.cancelled; grand.total+=t;
-      html += barRow(k, seg, t, maxTotal);
+  function renderKho(D){
+    var b=breakdown(D.kho), grand={completed:0,active:0,exception:0,cancelled:0}, gt=0, html='';
+    $('khoSub').textContent = b.names.join(' · ');
+    b.names.forEach(function(k){
+      var seg=segsOf(D.kho[k]); Object.keys(grand).forEach(function(s){grand[s]+=seg[s];}); gt+=b.totals[k];
+      html += barRow(k, seg, b.totals[k], b.max);
     });
-    html += barRow('TỔNG', {completed:grand.completed,active:grand.active,exception:grand.exception,cancelled:grand.cancelled}, grand.total, maxTotal, true);
-    document.getElementById('khoArea').innerHTML = html;
-
+    html += barRow('TỔNG', grand, gt, b.max, true);
+    $('khoArea').innerHTML = html;
     function barRow(name, seg, total, scaleMax, isTotal){
-      var width = total? Math.max(6, total/scaleMax*100) : 2;
-      var inner = '';
-      ['completed','active','exception','cancelled'].forEach(function(k){
-        if(!seg[k]) return;
-        var pct = total? (seg[k]/total*100) : 0;
-        inner += '<div class="seg '+k+'" style="width:'+pct+'%">'+ (pct>10? (seg[k]+' · '+Math.round(pct)+'%'):'') +'</div>';
-      });
+      var width = total? Math.max(6, Math.min(100,total/scaleMax*100)) : 2;
       return '<div class="bar-row"'+(isTotal?' style="border-top:1.5px solid var(--line);padding-top:14px;margin-top:4px;"':'')+'>'+
         '<div class="bar-name" style="'+(isTotal?'font-weight:800;':'')+'">'+esc(name)+'</div>'+
-        '<div class="bar-track" style="width:'+width+'%; min-width:120px;">'+inner+'</div>'+
+        '<div class="bar-track" style="width:'+width+'%; min-width:120px;">'+segHtml(seg,total,10)+'</div>'+
         '<div class="bar-total">Σ '+fmt(total)+'</div>'+
       '</div>';
     }
-  })();
+  }
 
-  // ---------- REGION BREAKDOWN ----------
-  (function(){
-    var region = D.region, names = Object.keys(region);
-    var totals = {}; names.forEach(function(k){
-      var c = region[k]; totals[k] = Object.keys(c).reduce(function(s,st){return s+c[st];},0);
+  function renderRegion(D){
+    var b=breakdown(D.region), grand={completed:0,active:0,exception:0,cancelled:0}, gt=0, html='';
+    b.names.forEach(function(k){
+      var seg=segsOf(D.region[k]); Object.keys(grand).forEach(function(s){grand[s]+=seg[s];}); gt+=b.totals[k];
+      html += row(k, seg, b.totals[k], b.max, false);
     });
-    names.sort(function(a,b){return totals[b]-totals[a];});
-    var maxTotal = Math.max.apply(null, names.map(function(k){return totals[k];}));
-
-    var grand = {completed:0,active:0,exception:0,cancelled:0,total:0};
-    var html = '';
-    names.forEach(function(k){
-      var c = region[k];
-      var seg = {completed:0,active:0,exception:0,cancelled:0};
-      Object.keys(c).forEach(function(st){ seg[STATUS_LABEL[st]] += c[st]; });
-      var t = totals[k];
-      grand.completed+=seg.completed; grand.active+=seg.active; grand.exception+=seg.exception; grand.cancelled+=seg.cancelled; grand.total+=t;
-      html += row(k, seg, t, maxTotal, false);
-    });
-    html += row('TỔNG', {completed:grand.completed,active:grand.active,exception:grand.exception,cancelled:grand.cancelled}, grand.total, maxTotal, true);
-    document.getElementById('regionArea').innerHTML = html;
-
+    html += row('TỔNG', grand, gt, b.max, true);
+    $('regionArea').innerHTML = html;
     function row(name, seg, total, scaleMax, isTotal){
-      var width = total? Math.max(8, total/scaleMax*100) : 2;
-      var inner = '';
-      ['completed','active','exception','cancelled'].forEach(function(k){
-        if(!seg[k]) return;
-        var pct = total? (seg[k]/total*100) : 0;
-        inner += '<div class="seg '+k+'" style="width:'+pct+'%">'+ (pct>9? (seg[k]+' · '+Math.round(pct)+'%'):'') +'</div>';
-      });
+      var width = total? Math.max(8, Math.min(100,total/scaleMax*100)) : 2;
       var doneRate = total? ((seg.completed+seg.exception+seg.cancelled)/total*100) : 0;
       return '<div class="region-row'+(isTotal?' total':'')+'">'+
         '<div class="bar-name">'+esc(name)+'</div>'+
-        '<div class="bar-track" style="width:'+width+'%; min-width:130px;">'+inner+'</div>'+
+        '<div class="bar-track" style="width:'+width+'%; min-width:130px;">'+segHtml(seg,total,9)+'</div>'+
         '<div class="bar-rate">'+doneRate.toFixed(1)+'% · Σ'+fmt(total)+'</div>'+
       '</div>';
     }
-  })();
+  }
 
-  // ---------- TOP ACCOUNTS ----------
-  (function(){
-    var groups = D.top30_groups.slice().sort(function(a,b){return b.total_pkgs-a.total_pkgs;});
+  function renderAccounts(D){
+    var groups = (D.top30_groups||[]).slice().sort(function(a,b){return b.total_pkgs-a.total_pkgs;});
     var n = groups.reduce(function(s,g){return s+g.members.length;},0);
-    document.getElementById('topAcctTitle').textContent = 'Top '+n+' Account — Pkgs & Weight lớn nhất trong ngày';
+    $('topAcctTitle').textContent = 'Top '+n+' Account — Pkgs & Weight lớn nhất trong ngày';
     var stt=1, html='';
     groups.forEach(function(g){
-      html += '<tr class="group-row"><td colspan="7">'+esc(g.region.toUpperCase())+' &nbsp;·&nbsp; '+g.members.length+' account &nbsp;·&nbsp; '+fmt(g.total_pkgs)+' pkgs</td></tr>';
-      g.members.forEach(function(m){
+      html += '<tr class="group-row"><td colspan="7">'+esc(String(g.region).toUpperCase())+' &nbsp;·&nbsp; '+g.members.length+' account &nbsp;·&nbsp; '+fmt(g.total_pkgs)+' pkgs</td></tr>';
+      g.members.slice().sort(function(a,b){return b.pkgs-a.pkgs;}).forEach(function(m){
         var done = m.done_pkgs>=m.pkgs && m.pkgs>0;
         html += '<tr class="item">'+
           '<td><span class="status-dot '+(done?'done':'pending')+'"></span>'+stt+'</td>'+
@@ -469,89 +629,117 @@
         stt++;
       });
     });
-    document.getElementById('acctBody').innerHTML = html;
-  })();
+    $('acctBody').innerHTML = html || '<tr><td colspan="7" class="no-result">Không có account nào có số kiện.</td></tr>';
+  }
 
   // ---------- ROUTE DETAIL ----------
-  (function(){
-    var routes = D.routes.slice().sort(function(a,b){ return (a.route+'').localeCompare((b.route+''), undefined, {numeric:true}); });
+  function setupRoutes(D){
+    routes = D.routes.map(function(r){ return Object.assign({}, r); })
+      .sort(function(a,b){ return (a.route+'').localeCompare((b.route+''), undefined, {numeric:true}); });
     routes.forEach(function(r,i){ r.stt = i+1; r.rate = r.total? ((r.completed+r.cancelled+r.exception)/r.total*100):0; });
-
     var regionSet = {}; routes.forEach(function(r){ regionSet[r.region]=true; });
     var regions = Object.keys(regionSet).sort();
-    var tabsHtml = '<div class="tab active" data-region="__all__">Tất cả</div>';
-    regions.forEach(function(r){ tabsHtml += '<div class="tab" data-region="'+esc(r)+'">'+esc(r)+'</div>'; });
-    document.getElementById('routeTabs').innerHTML = tabsHtml;
+    if(state.region!=='__all__' && !regionSet[state.region]) state.region='__all__';
+    var tabsHtml = '<div class="tab'+(state.region==='__all__'?' active':'')+'" data-region="__all__">Tất cả</div>';
+    regions.forEach(function(r){ tabsHtml += '<div class="tab'+(state.region===r?' active':'')+'" data-region="'+esc(r)+'">'+esc(r)+'</div>'; });
+    $('routeTabs').innerHTML = tabsHtml;
+    renderRoutes();
+  }
 
-    var state = {region:'__all__', q:'', sortKey:'total', sortDir:-1};
-
-    function render(){
-      var filtered = routes.filter(function(r){
-        if(state.region!=='__all__' && r.region!==state.region) return false;
-        if(state.q){
-          var q = state.q.toLowerCase();
-          if(!((r.route+'').toLowerCase().indexOf(q)>=0 || (r.region+'').toLowerCase().indexOf(q)>=0)) return false;
-        }
-        return true;
-      });
-      filtered.sort(function(a,b){
-        var k = state.sortKey;
-        var av=a[k], bv=b[k];
-        if(typeof av==='string') return state.sortDir*av.localeCompare(bv, undefined, {numeric:true});
-        return state.sortDir*(av-bv);
-      });
-      document.getElementById('routeCount').textContent = filtered.length+' / '+routes.length+' route';
-      if(!filtered.length){
-        document.getElementById('routeBody').innerHTML = '<tr><td colspan="10" class="no-result">Không tìm thấy route phù hợp.</td></tr>';
-        return;
+  function renderRoutes(){
+    var filtered = routes.filter(function(r){
+      if(state.region!=='__all__' && r.region!==state.region) return false;
+      if(state.q){
+        var q = state.q.toLowerCase();
+        if(!((r.route+'').toLowerCase().indexOf(q)>=0 || (r.region+'').toLowerCase().indexOf(q)>=0)) return false;
       }
-      var html = filtered.map(function(r){
-        var pctDone = r.total? ((r.completed+r.cancelled+r.exception)/r.total*100):0;
-        var rateClass = r.rate>=99.9? 'full' : (r.rate>=80? 'partial':'low');
-        var barInner = '';
-        ['completed','active','active_upd','exception','cancelled'].forEach(function(k){
-          if(!r[k]) return;
-          var cls = (k==='active'||k==='active_upd') ? 'active' : k;
-          var pct = r.total? (r[k]/r.total*100):0;
-          barInner += '<div class="seg '+cls+'" style="width:'+pct+'%"></div>';
-        });
-        return '<tr>'+
-          '<td class="left">'+r.stt+'</td>'+
-          '<td class="left"><b>'+esc(r.route)+'</b></td>'+
-          '<td class="left"><span class="khu-pill">'+esc(r.region)+'</span></td>'+
-          '<td class="left"><span class="alloc-track">'+barInner+'</span></td>'+
-          '<td>'+fmt(r.active+r.active_upd)+'</td>'+
-          '<td>'+fmt(r.cancelled)+'</td>'+
-          '<td>'+fmt(r.completed)+'</td>'+
-          '<td>'+fmt(r.exception)+'</td>'+
-          '<td><b>'+fmt(r.total)+'</b></td>'+
-          '<td><span class="rate-pill '+rateClass+'">'+r.rate.toFixed(1)+'%</span></td>'+
-        '</tr>';
-      }).join('');
-      document.getElementById('routeBody').innerHTML = html;
+      return true;
+    });
+    filtered.sort(function(a,b){
+      var k = state.sortKey, av=a[k], bv=b[k];
+      if(typeof av==='string' || typeof bv==='string') return state.sortDir*String(av).localeCompare(String(bv), undefined, {numeric:true});
+      return state.sortDir*((av==null?-1:av)-(bv==null?-1:bv));
+    });
+    $('routeCount').textContent = filtered.length+' / '+routes.length+' route';
+    if(!filtered.length){
+      $('routeBody').innerHTML = '<tr><td colspan="10" class="no-result">Không tìm thấy route phù hợp.</td></tr>';
+      return;
     }
-
-    document.getElementById('routeTabs').addEventListener('click', function(e){
-      var t = e.target.closest('.tab'); if(!t) return;
-      document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('active');});
-      t.classList.add('active');
-      state.region = t.getAttribute('data-region');
-      render();
-    });
-    document.getElementById('routeSearch').addEventListener('input', function(e){
-      state.q = e.target.value.trim();
-      render();
-    });
-    document.querySelectorAll('.route-table thead th[data-key]').forEach(function(th){
-      th.addEventListener('click', function(){
-        var k = th.getAttribute('data-key');
-        if(state.sortKey===k){ state.sortDir*=-1; } else { state.sortKey=k; state.sortDir = (k==='route'||k==='region')?1:-1; }
-        render();
+    $('routeBody').innerHTML = filtered.map(function(r){
+      var rateClass = r.rate>=99.9? 'full' : (r.rate>=80? 'partial':'low');
+      var barInner = '';
+      ['completed','active','active_upd','exception','cancelled'].forEach(function(k){
+        if(!r[k]) return;
+        var cls = (k==='active'||k==='active_upd') ? 'active' : k;
+        barInner += '<div class="seg '+cls+'" style="width:'+(r.total? (r[k]/r.total*100):0)+'%"></div>';
       });
-    });
+      return '<tr>'+
+        '<td class="left">'+r.stt+'</td>'+
+        '<td class="left"><b>'+esc(r.route==null?'—':r.route)+'</b></td>'+
+        '<td class="left"><span class="khu-pill">'+esc(r.region)+'</span></td>'+
+        '<td class="left"><span class="alloc-track">'+barInner+'</span></td>'+
+        '<td>'+fmt(r.active+r.active_upd)+'</td>'+
+        '<td>'+fmt(r.cancelled)+'</td>'+
+        '<td>'+fmt(r.completed)+'</td>'+
+        '<td>'+fmt(r.exception)+'</td>'+
+        '<td><b>'+fmt(r.total)+'</b></td>'+
+        '<td><span class="rate-pill '+rateClass+'">'+r.rate.toFixed(1)+'%</span></td>'+
+      '</tr>';
+    }).join('');
+  }
 
-    render();
-  })();
+  $('routeTabs').addEventListener('click', function(e){
+    var t = e.target.closest('.tab'); if(!t) return;
+    document.querySelectorAll('#routeTabs .tab').forEach(function(el){el.classList.remove('active');});
+    t.classList.add('active');
+    state.region = t.getAttribute('data-region');
+    renderRoutes();
+  });
+  $('routeSearch').addEventListener('input', function(e){ state.q = e.target.value.trim(); renderRoutes(); });
+  document.querySelectorAll('.route-table thead th[data-key]').forEach(function(th){
+    th.addEventListener('click', function(){
+      var k = th.getAttribute('data-key');
+      if(state.sortKey===k){ state.sortDir*=-1; } else { state.sortKey=k; state.sortDir = (k==='route'||k==='region')?1:-1; }
+      renderRoutes();
+    });
+  });
+
+  // ================= NẠP DỮ LIỆU =================
+  function showMsg(text, isError){
+    var el=$('loadMsg');
+    el.textContent=text||''; el.className='load-msg'+(isError?' err':''); el.hidden=!text;
+  }
+  function saveStored(obj){ try{ localStorage.setItem(STORE_KEY, JSON.stringify(obj)); }catch(e){} }
+  function clearStored(){ try{ localStorage.removeItem(STORE_KEY); }catch(e){} }
+  function loadStored(){ try{ var s=localStorage.getItem(STORE_KEY); return s? JSON.parse(s) : null; }catch(e){ return null; } }
+
+  $('rawFile').addEventListener('change', function(e){
+    var f=e.target.files[0]; if(!f) return;
+    e.target.value='';
+    if(typeof XLSX==='undefined'){ showMsg('Không tải được thư viện đọc Excel. Kiểm tra kết nối mạng rồi thử lại.', true); return; }
+    $('rawLabel').classList.add('busy');
+    f.arrayBuffer().then(function(buf){
+      var res=loadWorkbook(XLSX.read(buf,{type:'array',cellDates:false}), f.name);
+      renderAll(res.D, res.src);
+      saveStored(res);
+      $('resetData').hidden=false;
+      showMsg('Đã nạp '+fmt(res.D.total_rows)+' đơn từ '+res.src+'.'+(res.note?' '+res.note:''), false);
+    }).catch(function(err){ showMsg(err.message||String(err), true); })
+      .then(function(){ $('rawLabel').classList.remove('busy'); });
+  });
+  $('resetData').addEventListener('click', function(){
+    clearStored(); this.hidden=true; showMsg('');
+    renderAll(DEFAULT_D, DEFAULT_SRC);
+  });
+
+  var stored=loadStored();
+  if(stored && stored.D && stored.D.routes){
+    renderAll(stored.D, stored.src);
+    $('resetData').hidden=false;
+    showMsg('Đang xem dữ liệu đã nạp: '+stored.src+'.'+(stored.note?' '+stored.note:''), false);
+  } else {
+    renderAll(DEFAULT_D, DEFAULT_SRC);
+  }
 
   function esc(s){
     return (s===undefined||s===null?'':String(s)).replace(/[&<>"']/g, function(c){
@@ -559,7 +747,6 @@
     });
   }
 })();
-
 </script>
 <script>
 // Nhúng trong app duanfedex: bỏ nền và lề ngoài để hòa vào trang cha
