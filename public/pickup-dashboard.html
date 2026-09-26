@@ -142,6 +142,23 @@
   .dot.exception{background:var(--orange);}
   .dot.cancelled{background:var(--red);}
 
+  /* bảng thống kê theo khu vực */
+  .rg-scroll{overflow-x:auto;}
+  .rg-table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums;min-width:760px;}
+  .rg-table th{text-align:right;font-size:11px;letter-spacing:.04em;color:var(--sub);font-weight:700;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;cursor:pointer;user-select:none;}
+  .rg-table th:hover{color:var(--ink);}
+  .rg-table th.sorted{color:var(--ink);}
+  .rg-table th.nosort{cursor:default;}
+  .rg-table td{text-align:right;padding:9px 10px;border-bottom:1px solid var(--line);white-space:nowrap;}
+  .rg-table .left{text-align:left;}
+  .rg-table tbody tr:hover{background:#f8f9fc;}
+  .rg-table td.name{font-weight:700;}
+  .rg-table .pc{display:inline-block;min-width:44px;margin-left:6px;font-size:11.5px;color:var(--sub);font-weight:500;}
+  .rg-table .zero{color:#cbd5e1;}
+  .rg-table .c-completed b{color:var(--green);} .rg-table .c-active b{color:var(--amber);}
+  .rg-table .c-exception b{color:var(--orange);} .rg-table .c-cancelled b{color:var(--red);}
+  .rg-table tfoot td{font-weight:800;border-top:1.5px solid var(--line);border-bottom:none;background:#f6f7fb;}
+  .rg-table .mini{width:120px;height:9px;background:#eef1f6;border-radius:5px;overflow:hidden;display:inline-flex;vertical-align:middle;}
   .region-row{display:flex;align-items:center;gap:14px;padding:9px 0;}
   .region-row .bar-name{width:110px;}
   .region-row.total{border-top:1.5px solid var(--line);margin-top:6px;padding-top:14px;}
@@ -280,7 +297,7 @@
   <div class="panel">
     <div class="panel-head">
       <div class="panel-title">Phân bổ theo Khu vực (Region)</div>
-      <div class="panel-sub">Sắp xếp theo tổng đơn giảm dần</div>
+      <div class="panel-sub">Bấm tiêu đề cột để sắp xếp · mặc định theo tổng đơn giảm dần</div>
     </div>
     <div class="region-legend">
       <span><i class="dot completed"></i>Completed</span>
@@ -427,7 +444,7 @@
 
   function aggregate(recs, routeMap){
     var D={total_rows:0,total_pkgs:0,total_weight:0,completed:0,active:0,active_upd:0,exception:0,cancelled:0,
-      kho:{},region:{},accounts:[],routes:[],top30_groups:[],hours:null,unknown:{}};
+      kho:{},region:{},region_pw:{},accounts:[],routes:[],top30_groups:[],hours:null,unknown:{}};
     var acc={}, accOrder=[], rt={}, rtOrder=[], hours={}, scanned=0;
     function bump(obj,key,st){ var c=obj[key]||(obj[key]={}); c[st]=(c[st]||0)+1; }
     recs.forEach(function(r){
@@ -439,6 +456,7 @@
       var region=str(r.region) || (route!=null && routeMap[String(route).trim()]) || 'Unassigned';
       bump(D.kho, str(r.disp)||'(Không rõ)', st);
       bump(D.region, region, st);
+      var pw=D.region_pw[region]||(D.region_pw[region]={pkgs:0,weight:0}); pw.pkgs+=pk; pw.weight+=wt;
       if(str(r.account)!==''){
         var ak=String(r.account).trim();
         var a=acc[ak]; if(!a){ a=acc[ak]={account:r.account,customer:str(r.customer),region:region,pkgs:0,weight:0,done_pkgs:0,done_weight:0}; accOrder.push(ak); }
@@ -589,24 +607,59 @@
     }
   }
 
+  // ---------- BẢNG THỐNG KÊ THEO KHU VỰC ----------
+  var regionData=null, regionSort={key:'total', dir:-1};
+  var ST_COLS=[['completed','Completed'],['active','Đang xử lý'],['exception','Exception'],['cancelled','Cancelled']];
+
   function renderRegion(D){
-    var b=breakdown(D.region), grand={completed:0,active:0,exception:0,cancelled:0}, gt=0, html='';
-    b.names.forEach(function(k){
-      var seg=segsOf(D.region[k]); Object.keys(grand).forEach(function(s){grand[s]+=seg[s];}); gt+=b.totals[k];
-      html += row(k, seg, b.totals[k], b.max, false);
+    var pw=D.region_pw||null, rows=Object.keys(D.region).map(function(k){
+      var seg=segsOf(D.region[k]), total=seg.completed+seg.active+seg.exception+seg.cancelled;
+      return {name:k, total:total, completed:seg.completed, active:seg.active, exception:seg.exception, cancelled:seg.cancelled,
+        rate: total? (total-seg.active)/total*100 : 0,
+        pkgs: pw&&pw[k]? Math.round(pw[k].pkgs*10)/10 : null, weight: pw&&pw[k]? Math.round(pw[k].weight*10)/10 : null};
     });
-    html += row('TỔNG', grand, gt, b.max, true);
-    $('regionArea').innerHTML = html;
-    function row(name, seg, total, scaleMax, isTotal){
-      var width = total? Math.max(8, Math.min(100,total/scaleMax*100)) : 2;
-      var doneRate = total? ((seg.completed+seg.exception+seg.cancelled)/total*100) : 0;
-      return '<div class="region-row'+(isTotal?' total':'')+'">'+
-        '<div class="bar-name">'+esc(name)+'</div>'+
-        '<div class="bar-track" style="width:'+width+'%; min-width:130px;">'+segHtml(seg,total,9)+'</div>'+
-        '<div class="bar-rate">'+doneRate.toFixed(1)+'% · Σ'+fmt(total)+'</div>'+
-      '</div>';
-    }
+    regionData={rows:rows, hasPW:!!(pw && Object.keys(pw).length)};
+    drawRegionTable();
   }
+
+  function drawRegionTable(){
+    var rows=regionData.rows.slice(), hasPW=regionData.hasPW, k=regionSort.key, dir=regionSort.dir;
+    rows.sort(function(a,b){ return k==='name'? dir*a.name.localeCompare(b.name) : dir*((a[k]||0)-(b[k]||0)) || b.total-a.total; });
+    var sum={total:0,completed:0,active:0,exception:0,cancelled:0,pkgs:0,weight:0};
+    rows.forEach(function(r){ Object.keys(sum).forEach(function(f){ sum[f]+=r[f]||0; }); });
+    sum.rate = sum.total? (sum.total-sum.active)/sum.total*100 : 0;
+
+    var th=function(key,label,cls){ var on=regionSort.key===key; return '<th data-rk="'+key+'" class="'+(cls||'')+(on?' sorted':'')+'">'+label+(on?(regionSort.dir<0?' ▼':' ▲'):'')+'</th>'; };
+    // % viết dấu phẩy thập phân để không lẫn với dấu chấm phân cách nghìn của số kg
+    var pct=function(v){ return v.toFixed(1).replace('.',',')+'%'; };
+    var cnt=function(n,total,cls){ return n? '<td class="c-'+cls+'"><b>'+fmt(n)+'</b><span class="pc">'+pct(n/total*100)+'</span></td>' : '<td class="zero">–<span class="pc"></span></td>'; };
+    var rateTd=function(r){ var c=r>=99.9?'full':(r>=80?'partial':'low'); return '<td><span class="rate-pill '+c+'">'+pct(r)+'</span></td>'; };
+    var mini=function(r){
+      var inner=''; ST_COLS.forEach(function(s){ if(r[s[0]]) inner+='<div class="seg '+s[0]+'" style="width:'+(r[s[0]]/r.total*100)+'%"></div>'; });
+      return '<td class="left"><span class="mini">'+inner+'</span></td>';
+    };
+    var line=function(r, name, tag){
+      return '<'+tag+'><td class="left name">'+esc(name)+'</td><td><b>'+fmt(r.total)+'</b></td>'+
+        (hasPW? '<td>'+fmt(r.pkgs)+'</td><td>'+fmt(r.weight)+'</td>' : '')+
+        ST_COLS.map(function(s){ return cnt(r[s[0]], r.total, s[0]); }).join('')+
+        rateTd(r.rate)+mini(r)+'</'+tag+'>';
+    };
+    $('regionArea').innerHTML =
+      '<div class="rg-scroll"><table class="rg-table"><thead><tr>'+
+        th('name','KHU VỰC','left')+th('total','TỔNG ĐƠN')+(hasPW? th('pkgs','KIỆN')+th('weight','KG') : '')+
+        ST_COLS.map(function(s){ return th(s[0], s[1].toUpperCase()); }).join('')+
+        th('rate','TL LẤY TC')+'<th class="left nosort">PHÂN BỔ</th>'+
+      '</tr></thead><tbody>'+
+        (rows.length? rows.map(function(r){ return line(r, r.name, 'tr'); }).join('') : '<tr><td colspan="10" class="no-result">Chưa có dữ liệu khu vực.</td></tr>')+
+      '</tbody><tfoot>'+line(sum, 'TỔNG ('+rows.length+' khu vực)', 'tr')+'</tfoot></table></div>';
+  }
+
+  $('regionArea').addEventListener('click', function(e){
+    var t=e.target.closest('th[data-rk]'); if(!t) return;
+    var k=t.getAttribute('data-rk');
+    if(regionSort.key===k) regionSort.dir*=-1; else regionSort={key:k, dir:(k==='name'?1:-1)};
+    drawRegionTable();
+  });
 
   function renderAccounts(D){
     var groups = (D.top30_groups||[]).slice().sort(function(a,b){return b.total_pkgs-a.total_pkgs;});
