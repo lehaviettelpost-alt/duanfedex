@@ -21,6 +21,7 @@ import EmbeddedReportPage from "./components/EmbeddedReportPage";
 const EMBEDDED_REPORTS = {
   hanhtrinh: { src: "/bao-cao.html", title: "Báo cáo hành trình đơn" },
   pickup: { src: "/pickup-dashboard.html", title: "Pickup Status Dashboard" },
+  dre: { src: "/dre-report.html", title: "Báo cáo vận hành giao nhận Wave 3 — DRE" },
 };
 import { BrandBadges } from "./components/BrandLogos";
 

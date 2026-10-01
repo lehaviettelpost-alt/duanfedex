@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Báo cáo vận hành giao nhận Wave 3 — DRE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#EEF1F5; --panel:#FFFFFF; --ink:#16233F; --muted:#5E6B80; --line:#DCE1E8;
+  --sip:#2563EB; --van:#C27A0E; --pod:#1E8E3E; --dex:#D23B2E;
+  --ok-bg:#E5F4EA; --bad-bg:#FCE9E7; --warn-bg:#FDF4E2; --head:#16233F; --head2:#4F6E1D; --zebra:#F7F9FB;
+  box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0F1522; --panel:#18202F; --ink:#E6EAF2; --muted:#98A3B6; --line:#2B3547;
+  --sip:#6EA2FF; --van:#F0A93A; --pod:#4CC274; --dex:#FF6B5E;
+  --ok-bg:#163524; --bad-bg:#3B1C1A; --warn-bg:#3A2D14; --head:#24314D; --head2:#3D5418; --zebra:#1C2535;}}
+:root[data-theme="dark"]{
+  --bg:#0F1522; --panel:#18202F; --ink:#E6EAF2; --muted:#98A3B6; --line:#2B3547;
+  --sip:#6EA2FF; --van:#F0A93A; --pod:#4CC274; --dex:#FF6B5E;
+  --ok-bg:#163524; --bad-bg:#3B1C1A; --warn-bg:#3A2D14; --head:#24314D; --head2:#3D5418; --zebra:#1C2535;}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 "Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;font-variant-numeric:tabular-nums}
+.wrap{max-width:1500px;margin:0 auto;padding:20px 20px 40px}
+header{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;padding-bottom:14px;border-bottom:3px solid var(--ink);margin-bottom:18px}
+h1{margin:0;font-size:26px;font-weight:800;letter-spacing:-.01em}
+.sub{color:var(--muted);font-size:13px;margin-top:2px}
+.tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.btn{font:inherit;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:8px 14px;border-radius:6px;cursor:pointer}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--ink);color:var(--panel);border-color:var(--ink)}
+.btn.primary:hover{opacity:.9}
+.btn:focus-visible,.loc:focus-visible,input:focus-visible{outline:2px solid var(--sip);outline-offset:2px}
+.src{font-size:12px;color:var(--muted)}
+h2{font-size:15px;font-weight:700;margin:26px 0 10px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+h2 small{font-weight:500;color:var(--muted);font-size:13px}
+
+/* lifecycle */
+.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) minmax(0,2.2fr);gap:0;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.stage{padding:16px 18px;position:relative;border-right:1px solid var(--line)}
+.stage:not(:last-child)::after{content:"";position:absolute;right:-9px;top:50%;width:16px;height:16px;background:var(--panel);border-top:1px solid var(--line);border-right:1px solid var(--line);transform:translateY(-50%) rotate(45deg);z-index:1}
+.stage .lbl{font-size:12.5px;color:var(--muted);font-weight:600}
+.stage .num{font-size:44px;font-weight:800;line-height:1.05;margin:4px 0 6px;letter-spacing:-.02em}
+.stage .note{font-size:12.5px;color:var(--muted)}
+.bar{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden}
+.bar i{display:block;height:100%;border-radius:3px}
+.fails{padding:16px 18px 16px 26px;background:linear-gradient(90deg,var(--bad-bg),transparent 70%)}
+.fails .lbl{font-size:12.5px;color:var(--dex);font-weight:700}
+.dexrow{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-top:8px}
+.dx{border-left:3px solid var(--dex);padding:2px 0 2px 10px}
+.dx b{display:block;font-size:30px;line-height:1.1;color:var(--dex);font-weight:800}
+.dx b.zero{color:var(--muted);opacity:.6}
+.dx span{font-size:12px;color:var(--muted)}
+
+/* location cards + chart */
+.mid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:16px;align-items:start}
+.locs{display:grid;grid-template-columns:repeat(auto-fill,minmax(168px,1fr));gap:10px}
+.loc{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px 12px 0;cursor:pointer;display:flex;flex-direction:column;text-align:left;font:inherit;color:inherit}
+.loc.active{border-color:var(--ink);box-shadow:0 0 0 1px var(--ink)}
+.loc .top{display:flex;justify-content:space-between;align-items:baseline;gap:6px}
+.loc .nm{font-weight:700;font-size:14px}
+.pill{font-size:12px;font-weight:700;padding:1px 7px;border-radius:10px}
+.pill.ok{background:var(--ok-bg);color:var(--pod)} .pill.bad{background:var(--bad-bg);color:var(--dex)} .pill.warn{background:var(--warn-bg);color:var(--van)}
+.loc .cnt{font-size:12px;color:var(--muted);margin-bottom:6px}
+.loc dl{margin:0;font-size:12.5px;width:100%}
+.loc dl div{display:flex;justify-content:space-between;padding:3px 0;border-top:1px dashed var(--line)}
+.loc dt{color:var(--muted)} .loc dd{margin:0;font-weight:700}
+.loc dd.red{color:var(--dex)}
+.loc .ban{margin:8px -12px 0;padding:8px 12px;font-size:12.5px;font-weight:700;border-radius:0 0 7px 7px;width:calc(100% + 24px)}
+.ban.ok{background:var(--ok-bg);color:var(--pod)} .ban.bad{background:var(--bad-bg);color:var(--dex)}
+.chart{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px 16px}
+.chart h3{margin:0 0 4px;font-size:14px}
+.legend{display:flex;gap:14px;font-size:12px;color:var(--muted);margin-bottom:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px}
+.crow{display:grid;grid-template-columns:92px 1fr 52px;gap:8px;align-items:center;font-size:12.5px;margin:7px 0}
+.crow .stack{display:flex;height:16px;border-radius:3px;overflow:hidden;background:var(--line)}
+.crow .g{background:var(--pod)} .crow .r{background:var(--dex)}
+.crow .p{text-align:right;font-weight:700}
+.axis{display:grid;grid-template-columns:92px 1fr 52px;gap:8px;font-size:11px;color:var(--muted)}
+.axis div:nth-child(2){display:flex;justify-content:space-between}
+
+/* tables */
+.tables{display:grid;grid-template-columns:1fr;gap:18px}
+.tbox{background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.tbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--line)}
+.tbar h3{margin:0;font-size:14px}
+.tbar input{font:inherit;font-size:13px;padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);width:200px}
+.scroll{overflow-x:auto;max-height:560px;overflow-y:auto}
+table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:980px}
+th{position:sticky;top:0;background:var(--head);color:#fff;font-weight:600;padding:8px 8px;text-align:center;line-height:1.25;cursor:pointer;user-select:none;white-space:normal;z-index:1}
+th.l,td.l{text-align:left}
+.t2 th{background:var(--head2)}
+th[aria-sort="ascending"]::after{content:" ▲";font-size:9px} th[aria-sort="descending"]::after{content:" ▼";font-size:9px}
+td{padding:6px 8px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+tbody tr:nth-child(even){background:var(--zebra)}
+tbody tr:hover{background:var(--warn-bg)}
+td.hit{background:var(--bad-bg);color:var(--dex);font-weight:700}
+td.z{color:var(--muted);opacity:.55}
+td.pct.ok{background:var(--ok-bg);color:var(--pod);font-weight:700}
+td.pct.warn{background:var(--warn-bg);color:var(--van);font-weight:600}
+td.pct.bad{background:var(--bad-bg);color:var(--dex);font-weight:700}
+tfoot td{font-weight:800;background:var(--zebra);border-top:2px solid var(--ink);position:sticky;bottom:0}
+.nr{color:var(--dex);font-weight:700}
+.foot{font-size:12px;color:var(--muted);margin-top:8px}
+.routes{display:grid;grid-template-columns:1fr;gap:18px}@media (min-width:1800px){.routes{grid-template-columns:1fr 1fr}}
+.empty{padding:20px;color:var(--muted);text-align:center}
+@media (max-width:1100px){.mid{grid-template-columns:1fr}.routes{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,1fr)}.fails{grid-column:1/-1;border-top:1px solid var(--line)}.stage:nth-child(3)::after{display:none}}
+@media (max-width:640px){.flow{grid-template-columns:1fr}.stage::after{display:none}.stage{border-right:0;border-bottom:1px solid var(--line)}.dexrow{grid-template-columns:repeat(3,1fr)}h1{font-size:21px}.stage .num{font-size:36px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div>
+    <h1>Báo cáo vận hành giao nhận Wave 3 — DRE Report</h1>
+    <div class="sub">Theo dõi tiến trình SIP (nhận vào kho) → VAN (lên tuyến) → POD (giao thành công), tổng hợp theo địa điểm xử lý.</div>
+  </div>
+  <div class="tools">
+    <span class="src" id="src">Dữ liệu: Data_de.xlsx</span>
+    <button type="button" class="btn" id="resetData" hidden>Về dữ liệu mặc định</button>
+    <label class="btn primary" for="file" tabindex="0" title="Cột cần có: Location, SIPS Latest, VAN Latest, POD DDEX Latest, DEX Latest (Tuyến nếu có)">Import file Excel</label>
+    <input type="file" id="file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+  </div>
+</header>
+
+<h2>Vòng đời xử lý đơn <small id="totalLbl"></small></h2>
+<section class="flow" id="flow"></section>
+
+<h2>Theo địa điểm <small id="locLbl"></small></h2>
+<div class="mid">
+  <div class="locs" id="locs"></div>
+  <div class="chart">
+    <h3>Tỷ lệ giao thành công</h3>
+    <div class="legend"><span><i style="background:var(--pod)"></i>Giao thành công</span><span><i style="background:var(--dex)"></i>Chưa giao thành công</span></div>
+    <div id="chart"></div>
+    <div class="axis"><div></div><div><span>0%</span><span>50%</span><span>100%</span></div><div></div></div>
+  </div>
+</div>
+
+<h2>Bảng tổng hợp chi tiết theo location</h2>
+<div class="tbox"><div class="scroll"><table id="tLoc"></table></div></div>
+<div class="foot">"Đã VAN, chưa có KQ" là đơn đã lên tuyến nhưng chưa có scan POD hoặc DEX.</div>
+
+<h2>Chi tiết theo route <small id="filterLbl"></small></h2>
+<div class="routes">
+  <div class="tbox"><div class="tbar"><h3>Khu vực Hà Nội</h3><input type="search" placeholder="Tìm route…" data-t="A" aria-label="Tìm route Hà Nội"></div><div class="scroll"><table id="tA"></table></div></div>
+  <div class="tbox t2"><div class="tbar"><h3>Khu vực tỉnh</h3><input type="search" placeholder="Tìm route…" data-t="B" aria-label="Tìm route khu vực tỉnh"></div><div class="scroll"><table id="tB"></table></div></div>
+</div>
+</div>
+
+<script>
+let RAW = [["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",310],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",318],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",310],["LONG BIEN",1,1,0,"DEX[08]",311],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",310],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",318],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",311],["LONG BIEN",1,1,1,"",310],["LONG BIEN",1,1,1,"",310],["TU LIEM",1,1,1,"",358],["TU LIEM",1,1,1,"",356],["TU LIEM",1,1,1,"",356],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",362],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",352],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",358],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",362],["TU LIEM",1,1,1,"",352],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",358],["TU LIEM",1,1,1,"",356],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",368],["TU LIEM",1,1,1,"",364],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",356],["TU LIEM",1,1,1,"",358],["TU LIEM",1,1,1,"",360],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",350],["TU LIEM",1,1,1,"",360],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",358],["TU LIEM",1,1,1,"",362],["TU LIEM",1,1,1,"",358],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",364],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",368],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",364],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",368],["TU LIEM",1,1,1,"",352],["TU LIEM",1,1,1,"",358],["TU LIEM",1,1,1,"",362],["TU LIEM",1,1,1,"",356],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",363],["TU LIEM",1,1,1,"",352],["TU LIEM",1,1,1,"",369],["TU LIEM",1,1,1,"",365],["TU LIEM",1,1,1,"",352],["TAY HO",1,1,1,"",331],["TAY HO",1,1,1,"",324],["TAY HO",1,1,1,"",322],["TAY HO",1,1,1,"",328],["TAY HO",1,1,1,"",330],["TAY HO",1,1,1,"",330],["TAY HO",1,1,1,"",331],["TAY HO",1,1,1,"",324],["TAY HO",1,1,1,"",333],["TAY HO",1,1,1,"",326],["TAY HO",1,1,1,"",333],["TAY HO",1,1,1,"",328],["TAY HO",1,1,1,"",330],["TAY HO",1,1,0,"DEX[03]",331],["THANH XUAN",1,1,0,"DEX[08]",324],["TAY HO",1,1,1,"",330],["TAY HO",1,1,1,"",331],["TAY HO",1,1,1,"",328],["TAY HO",1,1,1,"",328],["TAY HO",1,1,1,"",330],["TAY HO",1,1,1,"",330],["TAY HO",1,1,1,"",320],["TAY HO",1,1,1,"",330],["TAY HO",1,1,0,"DEX[03]",324],["TAY HO",1,1,1,"",320],["TAY HO",1,1,1,"",338],["TAY HO",1,1,1,"",326],["TAY HO",1,1,1,"",331],["TAY HO",1,1,0,"DEX[08]",328],["TAY HO",1,1,1,"",324],["TAY HO",1,1,1,"",328],["TAY HO",1,1,1,"",328],["TAY HO",1,1,1,"",331],["TAY HO",1,1,1,"",338],["TAY HO",1,1,1,"",324],["TAY HO",1,1,1,"",324],["TAY HO",1,1,1,"",331],["TAY HO",1,1,1,"",324],["TAY HO",1,1,1,"",328],["TAY HO",1,1,1,"",328],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",387],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",370],["THANH XUAN",1,1,1,"",380],["THANH XUAN",1,1,1,"",370],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",373],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,0,"DEX[03]",380],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",373],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",388],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",373],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",387],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",373],["THANH XUAN",1,1,1,"",370],["THANH XUAN",1,1,1,"",374],["THANH XUAN",1,1,1,"",370],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,0,"DEX[08]",379],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",379],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",382],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",380],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",371],["THANH XUAN",1,1,1,"",387],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",463],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",463],["NAM DINH",1,1,1,"",466],["NAM DINH",1,1,1,"",494],["NAM DINH",1,1,1,"",471],["NAM DINH",1,0,0,"",""],["NAM DINH",1,1,1,"",460],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",461],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",470],["NAM DINH",1,1,1,"",461],["NAM DINH",1,1,1,"",460],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",463],["NAM DINH",1,1,1,"",470],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,0,"DEX[03]",470],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",494],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",470],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,0,"",491],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",461],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",461],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",461],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",470],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",491],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,0,0,"",""],["NAM DINH",1,1,1,"",463],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",463],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,0,"",460],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,0,"",491],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",494],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",461],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,0,"DEX[17]",465],["NAM DINH",1,1,1,"",494],["NAM DINH",1,1,1,"",463],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",494],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",461],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,0,0,"",""],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",470],["NAM DINH",1,1,1,"",464],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",494],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",470],["NAM DINH",1,1,0,"DEX[93]",461],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",491],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",465],["NAM DINH",1,1,1,"",463],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",460],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,0,"DEX[17]",111],["NAM DINH",1,0,0,"",""],["NAM DINH",1,1,1,"",460],["NAM DINH",1,1,1,"",473],["NAM DINH",1,1,1,"",471],["NAM DINH",1,1,1,"",491],["NAM DINH",1,1,1,"",475],["NAM DINH",1,1,1,"",475],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",455],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",455],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,0,"DEX[08]",459],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",455],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",458],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",456],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",456],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,1,1,"",459],["HAI PHONG",1,1,1,"",451],["HAI PHONG",1,1,1,"",496],["HAI PHONG",1,0,0,"",""],["HAI PHONG",1,1,1,"",453],["HAI PHONG",1,1,1,"",459],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,0,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",441],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",441],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",445],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",449],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",443],["HAI DUONG",1,1,1,"",445],["BAC NINH",1,1,1,"",428],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,0,"DEX[08]",425],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,0,"DEX[17]",413],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",428],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",420],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",425],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",412],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",425],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",428],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",423],["BAC NINH",1,1,1,"",425],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",420],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",412],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,0,"DEX[08]",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",428],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",423],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",423],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",421],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",428],["BAC NINH",1,1,1,"",423],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",423],["BAC NINH",1,1,1,"",428],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",425],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",413],["BAC NINH",1,1,1,"",415],["BAC NINH",1,1,1,"",420],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",419],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",429],["BAC NINH",1,1,1,"",429]]; // [location, sip, van, pod, dexCode, route]
+const BASE_DEX=['08','03','12','17','93'];
+let DEX=[...BASE_DEX];
+const ORDER=['TU LIEM','THANH XUAN','TAY HO','LONG BIEN','NAM DINH','BAC NINH','HAI DUONG','HAI PHONG'];
+const HANOI=new Set(['TU LIEM','THANH XUAN','TAY HO','LONG BIEN','HA DONG','CAU GIAY','DONG DA','HOANG MAI','BA DINH','HOAN KIEM','HAI BA TRUNG','GIA LAM','THANH TRI','DONG ANH','SOC SON','LONG BIEN']);
+let selLoc=null, q={A:'',B:''}, sortSt={};
+const fmt=n=>n.toLocaleString('vi-VN');
+const pct=x=>(x*100).toFixed(1).replace('.',',')+'%';
+const cls=x=>x>=1?'ok':x>=.95?'warn':'bad';
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function agg(rows){
+  const a={tot:rows.length,noSip:0,noVan:0,pod:0,dex:{},pend:0};
+  DEX.forEach(d=>a.dex[d]=0);
+  for(const r of rows){
+    if(!r[1])a.noSip++;
+    if(!r[2])a.noVan++;
+    if(r[3])a.pod++;
+    const m=/DEX\[(\d+)\]/.exec(r[4]||'');
+    if(m&&a.dex[m[1]]!==undefined)a.dex[m[1]]++;
+  }
+  a.dexSum=DEX.reduce((s,d)=>s+a.dex[d],0);
+  a.pend=Math.max(0,a.tot-a.pod-a.noVan-a.dexSum);
+  a.vanR=a.tot?(a.tot-a.noVan)/a.tot:0; a.podR=a.tot?a.pod/a.tot:0;
+  return a;
+}
+function locations(){
+  const set=[...new Set(RAW.map(r=>r[0]).filter(Boolean))];
+  return set.sort((x,y)=>{const i=ORDER.indexOf(x),j=ORDER.indexOf(y);return (i<0?99:i)-(j<0?99:j)||x.localeCompare(y)});
+}
+const title=s=>s.toLowerCase().replace(/(^|\s)\S/g,c=>c.toUpperCase());
+
+function renderFlow(A){
+  document.getElementById('totalLbl').textContent=fmt(A.tot)+' đơn';
+  const st=(lbl,n,col,note,r)=>`<div class="stage"><div class="lbl">${lbl}</div><div class="num" style="color:var(${col})">${fmt(n)}</div><div class="note">${note}</div><div class="bar"><i style="width:${(r*100).toFixed(1)}%;background:var(${col})"></i></div></div>`;
+  const sip=A.tot-A.noSip, van=A.tot-A.noVan;
+  document.getElementById('flow').innerHTML=
+    st('Đã SIP (nhận vào kho)',sip,'--sip',`Đạt ${pct(A.tot?sip/A.tot:0)} tổng đơn`,A.tot?sip/A.tot:0)+
+    st('Đã VAN lên tuyến',van,'--van',`Đạt ${pct(A.vanR)} · <span class="nr">${A.noVan}</span> đơn chưa VAN`,A.vanR)+
+    st('Giao thành công (POD)',A.pod,'--pod',`Đạt ${pct(A.podR)} · ${A.tot-A.pod} chưa giao thành công`,A.podR)+
+    `<div class="fails"><div class="lbl">Giao không thành công: ${A.dexSum} đơn DEX · ${A.pend} đơn đã VAN chưa có kết quả</div><div class="dexrow">`+
+    DEX.map(d=>`<div class="dx"><b class="${A.dex[d]?'':'zero'}">${A.dex[d]}</b><span>DEX ${d} · ${pct(A.tot?A.dex[d]/A.tot:0)}</span></div>`).join('')+`</div></div>`;
+}
+
+function renderLocs(L){
+  document.getElementById('locLbl').textContent=L.length+' địa điểm xử lý · bấm vào thẻ để lọc bảng route';
+  document.getElementById('locs').innerHTML=L.map(([n,a])=>`
+    <button class="loc ${selLoc===n?'active':''}" data-loc="${esc(n)}" aria-pressed="${selLoc===n}">
+      <div class="top"><span class="nm">${esc(n)}</span><span class="pill ${a.podR>=.95?'ok':'bad'}">${pct(a.podR)}</span></div>
+      <div class="cnt">${fmt(a.tot)} đơn</div>
+      <dl>
+        <div><dt>Chưa SIP</dt><dd class="${a.noSip?'red':''}">${a.noSip}</dd></div>
+        <div><dt>Chưa VAN lên tuyến</dt><dd class="${a.noVan?'red':''}">${a.noVan}</dd></div>
+        <div><dt>Giao thành công</dt><dd>${a.pod}</dd></div>
+        <div><dt>Giao không TC (DEX)</dt><dd class="${a.dexSum?'red':''}">${a.dexSum}</dd></div>
+        <div><dt>Đã VAN, chưa có KQ</dt><dd>${a.pend}</dd></div>
+      </dl>
+      <div class="ban ${a.noVan?'bad':'ok'}">${a.noVan?`⚠ Còn ${a.noVan} đơn chưa lên tuyến`:'✓ 100% đã lên tuyến'}</div>
+    </button>`).join('');
+  document.querySelectorAll('.loc').forEach(b=>b.onclick=()=>{selLoc=selLoc===b.dataset.loc?null:b.dataset.loc;render();});
+  document.getElementById('chart').innerHTML=L.map(([n,a])=>`<div class="crow"><span>${esc(title(n))}</span><div class="stack" title="${a.pod} giao TC / ${a.tot-a.pod} chưa"><i class="g" style="width:${a.podR*100}%"></i><i class="r" style="width:${100-a.podR*100}%"></i></div><span class="p" style="color:var(${a.podR>=.95?'--pod':'--dex'})">${pct(a.podR)}</span></div>`).join('');
+}
+
+function cellsAgg(a){
+  return [a.tot,a.noSip,a.noVan,a.vanR,a.pod,...DEX.map(d=>a.dex[d])];
+}
+function tdN(v,red){return `<td class="${v===0?'z':red&&v>0?'hit':''}">${fmt(v)}</td>`}
+function tdP(v){return `<td class="pct ${cls(v)}">${pct(v)}</td>`}
+function rowCells(a,withPend){
+  return tdN(a.tot)+tdN(a.noSip,1)+tdN(a.noVan,1)+tdP(a.vanR)+tdN(a.pod)+DEX.map(d=>tdN(a.dex[d],1)).join('')+(withPend?tdN(a.pend,1):'')+tdP(a.podR);
+}
+const hCommon=()=>['Tổng đơn','Chưa SIP','Chưa VAN','Tỷ lệ VAN','Giao TC',...DEX.map(d=>'Chưa giao TC<br>DEX '+d)];
+
+function sortRows(id,rows,keyFns){
+  const s=sortSt[id]; if(!s)return rows;
+  const f=keyFns[s.col]; const k=s.dir;
+  return [...rows].sort((x,y)=>{const a=f(x),b=f(y);return (typeof a==='string'?a.localeCompare(b):a-b)*k});
+}
+function headRow(id,heads){
+  const s=sortSt[id]||{};
+  return '<thead><tr>'+heads.map((h,i)=>`<th data-i="${i}" class="${i<(id==='tLoc'?1:3)?'l':''}" aria-sort="${s.col===i?(s.dir>0?'ascending':'descending'):'none'}">${h}</th>`).join('')+'</tr></thead>';
+}
+function bindSort(id){
+  document.querySelectorAll('#'+id+' th').forEach(th=>th.onclick=()=>{
+    const i=+th.dataset.i, s=sortSt[id];
+    sortSt[id]= s&&s.col===i ? (s.dir===1?{col:i,dir:-1}:null) : {col:i,dir:1};
+    render();
+  });
+}
+
+function renderLocTable(L,A){
+  const keys=[x=>x[0],x=>x[1].tot,x=>x[1].noSip,x=>x[1].noVan,x=>x[1].vanR,x=>x[1].pod,...DEX.map(d=>x=>x[1].dex[d]),x=>x[1].pend,x=>x[1].podR];
+  const rows=sortRows('tLoc',L,keys);
+  document.getElementById('tLoc').innerHTML=headRow('tLoc',['Địa điểm',...hCommon(),'Đã VAN,<br>chưa có KQ','Tỷ lệ giao TC'])+
+    '<tbody>'+rows.map(([n,a])=>`<tr><td class="l"><b>${esc(n)}</b></td>${rowCells(a,1)}</tr>`).join('')+'</tbody>'+
+    `<tfoot><tr><td class="l">TỔNG CỘNG</td>${rowCells(A,1)}</tr></tfoot>`;
+  bindSort('tLoc');
+}
+
+function routeGroups(hanoi){
+  const m=new Map();
+  for(const r of RAW){
+    if(!r[0]||HANOI.has(r[0])!==hanoi)continue;
+    if(selLoc&&r[0]!==selLoc)continue;
+    const k=r[0]+'|'+r[5]; if(!m.has(k))m.set(k,[]); m.get(k).push(r);
+  }
+  return [...m.entries()].map(([k,rows])=>{const [loc,rt]=k.split('|');return {loc,rt,a:agg(rows),rows}})
+    .sort((x,y)=>(x.rt===''?1e9:+x.rt)-(y.rt===''?1e9:+y.rt)||x.loc.localeCompare(y.loc));
+}
+function renderRoute(id,key,hanoi){
+  let g=routeGroups(hanoi);
+  if(q[key]) g=g.filter(x=>(x.rt||'chưa có tuyến').toLowerCase().includes(q[key])||x.loc.toLowerCase().includes(q[key]));
+  g.forEach((x,i)=>x.stt=i+1);
+  const keys=[x=>x.stt,x=>x.rt===''?1e9:+x.rt,x=>x.loc,x=>x.a.tot,x=>x.a.noSip,x=>x.a.noVan,x=>x.a.vanR,x=>x.a.pod,...DEX.map(d=>x=>x.a.dex[d]),x=>x.a.podR];
+  const rows=sortRows(id,g,keys);
+  const T=agg(g.flatMap(x=>x.rows));
+  document.getElementById(id).innerHTML=headRow(id,['STT','Route','Region',...hCommon(),'Tỷ lệ giao TC'])+
+    '<tbody>'+(rows.length?rows.map(x=>`<tr><td class="l">${x.stt}</td><td class="l">${x.rt===''?'<span class="nr">Chưa có tuyến</span>':'<b>'+x.rt+'</b>'}</td><td class="l">${esc(title(x.loc))}</td>${rowCells(x.a,0)}</tr>`).join(''):`<tr><td colspan="${9+DEX.length}" class="empty">Không có route nào khớp bộ lọc.</td></tr>`)+'</tbody>'+
+    `<tfoot><tr><td class="l" colspan="3">TỔNG CỘNG · ${rows.length} route</td>${rowCells(T,0)}</tr></tfoot>`;
+  bindSort(id);
+}
+
+function render(){
+  const A=agg(RAW);
+  const L=locations().map(n=>[n,agg(RAW.filter(r=>r[0]===n))]);
+  renderFlow(A); renderLocs(L); renderLocTable(L,A);
+  renderRoute('tA','A',true); renderRoute('tB','B',false);
+  document.getElementById('filterLbl').innerHTML=selLoc?`đang lọc: <b>${esc(selLoc)}</b> · <a href="#" id="clr">bỏ lọc</a>`:'';
+  const c=document.getElementById('clr'); if(c)c.onclick=e=>{e.preventDefault();selLoc=null;render();};
+}
+document.querySelectorAll('.tbar input').forEach(i=>i.oninput=()=>{q[i.dataset.t]=i.value.trim().toLowerCase();render();});
+
+// ---- import file Excel (giữ lại trên trình duyệt này sau khi tải lại trang)
+const STORE_KEY='dre-report-data', DEFAULT_SRC=document.getElementById('src').textContent;
+const DEFAULT_RAW=RAW.map(r=>[r[0],r[1],r[2],r[3],r[4],r[5]===''?'':String(r[5])]);
+const COLS={loc:['location'],sip:['sips latest','sip latest'],van:['van latest','vans latest'],pod:['pod ddex latest','pod latest'],dex:['dex latest'],route:['tuyến','tuyen','route']};
+const normH=s=>String(s??'').replace(/\s+/g,' ').trim().toLowerCase();
+
+function readWorkbook(wb){
+  // Ưu tiên sheet "Data", sau đó sheet đầu tiên có cột Location
+  const names=[...wb.SheetNames].sort((a,b)=>(normH(b)==='data')-(normH(a)==='data'));
+  for(const n of names){
+    const grid=XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,defval:'',raw:true});
+    const hi=grid.slice(0,10).findIndex(r=>r.map(normH).includes('location'));
+    if(hi<0) continue;
+    const head=grid[hi].map(normH), idx={};
+    Object.keys(COLS).forEach(k=>{ const j=COLS[k].map(c=>head.indexOf(c)).find(j=>j>=0); if(j!==undefined) idx[k]=j; });
+    const miss=['sip','van','pod','dex'].filter(k=>idx[k]===undefined);
+    if(miss.length) throw new Error('Sheet "'+n+'" thiếu cột: '+miss.map(k=>({sip:'SIPS Latest',van:'VAN Latest',pod:'POD DDEX Latest',dex:'DEX Latest'})[k]).join(', '));
+    const has=v=>String(v??'').trim()?1:0;
+    const rows=grid.slice(hi+1).filter(r=>String(r[idx.loc]??'').trim()).map(r=>{
+      const m=/DEX\[(\d+)\]/i.exec(String(r[idx.dex]??''));
+      return [String(r[idx.loc]).trim().toUpperCase(),has(r[idx.sip]),has(r[idx.van]),has(r[idx.pod]),m?'DEX['+m[1]+']':'',
+        idx.route===undefined?'':String(r[idx.route]??'').trim().replace(/\.0$/,'')];
+    });
+    if(!rows.length) throw new Error('Sheet "'+n+'" không có dòng dữ liệu nào.');
+    return {rows, sheet:n, noRoute:idx.route===undefined};
+  }
+  throw new Error('Không tìm thấy sheet có cột "Location". Hãy dùng file xuất DRE (sheet Data).');
+}
+// Mã DEX hiển thị = các mã chuẩn + mọi mã khác xuất hiện trong dữ liệu, để không đơn DEX nào bị bỏ sót
+function syncDex(){
+  const extra=[...new Set(RAW.map(r=>(/DEX\[(\d+)\]/.exec(r[4]||'')||[])[1]).filter(Boolean))].filter(d=>!BASE_DEX.includes(d)).sort();
+  DEX=[...BASE_DEX,...extra];
+}
+function useData(raw,src,stored){
+  RAW=raw; syncDex(); selLoc=null; render();
+  document.getElementById('src').textContent=src;
+  document.getElementById('resetData').hidden=!stored;
+}
+const lbl=document.querySelector('label[for=file]');
+lbl.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();document.getElementById('file').click();}};
+document.getElementById('file').onchange=async e=>{
+  const f=e.target.files[0]; if(!f)return;
+  e.target.value='';
+  const srcEl=document.getElementById('src');
+  try{
+    if(typeof XLSX==='undefined') throw new Error('Không tải được thư viện đọc Excel. Kiểm tra kết nối mạng rồi thử lại.');
+    const res=readWorkbook(XLSX.read(await f.arrayBuffer(),{type:'array'}));
+    const src='Dữ liệu: '+f.name+' · '+fmt(res.rows.length)+' đơn'+(res.noRoute?' (file không có cột Tuyến)':'');
+    useData(res.rows,src,true);
+    try{ localStorage.setItem(STORE_KEY,JSON.stringify({raw:res.rows,src})); }catch(_){}
+  }catch(err){ srcEl.innerHTML='<span class="nr">Không đọc được file: '+esc(err.message)+'</span>'; }
+};
+document.getElementById('resetData').onclick=()=>{
+  try{ localStorage.removeItem(STORE_KEY); }catch(_){}
+  useData(DEFAULT_RAW,DEFAULT_SRC,false);
+};
+let saved=null; try{ saved=JSON.parse(localStorage.getItem(STORE_KEY)||'null'); }catch(_){}
+if(saved&&Array.isArray(saved.raw)&&saved.raw.length) useData(saved.raw,saved.src+' · đã lưu trên trình duyệt',true);
+else useData(DEFAULT_RAW,DEFAULT_SRC,false);
+
+// Nhúng trong app duanfedex (giao diện sáng): bỏ nền, lề ngoài và theo theme sáng của trang cha
+if(window.self!==window.top){
+  document.documentElement.setAttribute('data-theme','light');
+  const st=document.createElement('style');
+  st.textContent='body{background:transparent}.wrap{max-width:none;padding:0 0 8px}';
+  document.head.appendChild(st);
+}
+</script>
+</body>
+</html>
